@@ -6,9 +6,11 @@ namespace ProtegeMCP.Server;
 
 public class ProtegePluginClient(HttpClient httpClient)
 {
-    public async Task<IEnumerable<string>> ListConceptsAsync()
+    public async Task<string> ListConceptsAsync()
     {
-        return await httpClient.GetFromJsonAsync<IEnumerable<string>>("/concepts", JsonSerializerOptions.Web) ?? [];
+        var response = await httpClient.GetAsync("/concepts");
+        var text = await response.Content.ReadAsStringAsync();
+        return text;
     }
 
     public async Task<string> CreateConceptAsync(CreateNewConceptRequest request)

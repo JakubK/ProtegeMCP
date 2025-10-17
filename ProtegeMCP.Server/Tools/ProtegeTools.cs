@@ -8,7 +8,7 @@ public class ProtegeTools()
 {
     [McpServerTool(Name = "list-concepts")]
     [Description("List all Concepts present in current Ontology")]
-    public static async Task<IEnumerable<string>> ListConceptsAsync(ProtegePluginClient client)
+    public static async Task<string> ListConceptsAsync(ProtegePluginClient client)
     {
         return await client.ListConceptsAsync();
     }

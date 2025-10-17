@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "protege-mcp": {
+      "type": "http",
+      "url": "http://localhost:5000",
+    }
+  }
+}

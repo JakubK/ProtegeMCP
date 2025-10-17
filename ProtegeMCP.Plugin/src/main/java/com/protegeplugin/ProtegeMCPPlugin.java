@@ -1,12 +1,15 @@
 package com.protegeplugin;
 
 import java.awt.event.ActionEvent;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.Random;
+import java.util.Set;
 
+import com.google.gson.Gson;
 import org.protege.editor.owl.model.OWLModelManager;
 import org.protege.editor.owl.ui.action.ProtegeOWLAction;
 import org.semanticweb.owlapi.model.*;
@@ -24,23 +27,37 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
             try {
                 int port = 8080;
                 HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
-                server.createContext("/hello", exchange -> {
-                    System.out.println("HIT! Path: " + exchange.getRequestURI().getPath());
+
+                server.createContext("/concepts", exchange -> {
                     modelManager = getOWLModelManager();
-                    OWLOntology owlOntology = modelManager.getActiveOntology();
+                    OWLOntology activeOntology = modelManager.getActiveOntology();
                     OWLDataFactory factory = modelManager.getOWLDataFactory();
-                    OWLClass newClass = factory.getOWLClass(IRI.create("http://example.com#MyNewConcept" + new Random().nextInt()));
-                    OWLDeclarationAxiom declaration = factory.getOWLDeclarationAxiom(newClass);
-                    AddAxiom addAxiom = new AddAxiom(owlOntology, declaration);
+                    Gson gson = new Gson();
 
-                    // Schedule on UI thread
-                    SwingUtilities.invokeLater(() -> {
-                        modelManager.applyChange(addAxiom);
-                        System.out.println("6");
-                        System.out.println("DONE!");
-                    });
+                    if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                         Set<OWLClass> presentConcepts = activeOntology.getClassesInSignature();
+                         String response = gson.toJson(presentConcepts);
+                         sendResponse(exchange, response);
+                    }
+                    else if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
+                    {
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
+                        CreateNewConceptRequest concept = gson.fromJson(reader, CreateNewConceptRequest.class);
 
-                    sendResponse(exchange, "Hello world");
+                        OWLClass newClass = factory.getOWLClass(IRI.create(concept.Uri));
+                        OWLDeclarationAxiom declaration = factory.getOWLDeclarationAxiom(newClass);
+                        AddAxiom addAxiom = new AddAxiom(activeOntology, declaration);
+
+                        // Schedule on UI thread
+                        SwingUtilities.invokeLater(() -> {
+                            modelManager.applyChange(addAxiom);
+                        });
+
+                        sendResponse(exchange, "Success");
+                    } else
+                    {
+                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    }
                 });
 
                 server.setExecutor(null); // default executor
