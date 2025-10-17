@@ -1,0 +1,12 @@
+<plugin id="com.protegeplugin"
+        name="Background Daemon"
+        version="1.0.0">
+
+    <extension id="t1" point="org.protege.editor.core.application.EditorKitMenuAction">
+        <name value="Protege MCP Plugin"/>
+        <path value="org.protege.editor.owl.menu.tools/SlotG-A"/>
+        <editorKitId value="any"/>
+        <class value="com.protegeplugin.ProtegeMCPPlugin"/>
+    </extension>
+
+</plugin>
