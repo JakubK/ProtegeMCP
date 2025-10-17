@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="ProtegeMCP.Server\ProtegeMCP.Server.csproj" Type="Classic C#" />
+  <Folder Name="Related files">
+    <File Path="ProtegeMCP.Server\.gitignore"/>
+    <File Path="README.md"/>
+  </Folder>
+</Solution>
