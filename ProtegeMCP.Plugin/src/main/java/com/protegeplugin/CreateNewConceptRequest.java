@@ -2,5 +2,5 @@ package com.protegeplugin;
 
 public class CreateNewConceptRequest
 {
-    public String Uri;
+    public String uri;
 }

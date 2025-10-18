@@ -41,19 +41,24 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     }
                     else if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
                     {
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
-                        CreateNewConceptRequest concept = gson.fromJson(reader, CreateNewConceptRequest.class);
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
+                            System.out.println("START");
+                            CreateNewConceptRequest concept = gson.fromJson(reader, CreateNewConceptRequest.class);
+                            OWLClass newClass = factory.getOWLClass(IRI.create(concept.uri));
+                            OWLDeclarationAxiom declaration = factory.getOWLDeclarationAxiom(newClass);
+                            AddAxiom addAxiom = new AddAxiom(activeOntology, declaration);
 
-                        OWLClass newClass = factory.getOWLClass(IRI.create(concept.Uri));
-                        OWLDeclarationAxiom declaration = factory.getOWLDeclarationAxiom(newClass);
-                        AddAxiom addAxiom = new AddAxiom(activeOntology, declaration);
-
-                        // Schedule on UI thread
-                        SwingUtilities.invokeLater(() -> {
-                            modelManager.applyChange(addAxiom);
-                        });
-
-                        sendResponse(exchange, "Success");
+                            SwingUtilities.invokeLater(() -> {
+                                modelManager.applyChange(addAxiom);
+                                try {
+                                    sendResponse(exchange, "Success");
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        } catch (Exception e) {
+                            sendResponse(exchange, "Error: " + e.getMessage());
+                        }
                     } else
                     {
                         exchange.sendResponseHeaders(405, -1); // Method Not Allowed
