@@ -1,5 +1,8 @@
 using System.ComponentModel;
+using System.Net.Http.Json;
+using System.Text.Json;
 using ModelContextProtocol.Server;
+using ProtegeMCP.Server.Requests;
 
 namespace ProtegeMCP.Server.Tools;
 
@@ -10,27 +13,25 @@ public class IOTools
     [Description("Creates new blank ontology and switches workspace to it")]
     public static async Task<string> NewOntologyAsync(HttpClient client)
     {
-        return "";
+        var response = await client.PostAsync("/new", null);
+        return await response.Content.ReadAsStringAsync();
     }
     
     [McpServerTool(Name = "open-ontology")]
     [Description("Opens ontology from given path and switches Protege workspace to it")]
-    public static async Task<string> OpenOntologyAsync(HttpClient client)
+    public static async Task<string> OpenOntologyAsync(HttpClient client, 
+        [Description("Required path to file with ontology")] string path)
     {
-        return "";
-    }
-    
-    [McpServerTool(Name = "save-ontology")]
-    [Description("Saves current ontology and fails if it has no file associated")]
-    public static async Task<string> SaveOntologyAsync(HttpClient client)
-    {
-        return "";
+        var response = await client.PostAsJsonAsync("/open", new OpenOntologyRequest(path), JsonSerializerOptions.Web);
+        return await response.Content.ReadAsStringAsync();
     }
     
     [McpServerTool(Name = "save-as-ontology")]
-    [Description("Saves current ontology to given file path")]
-    public static async Task<string> SaveAsOntologyAsync(HttpClient client)
+    [Description("Saves current ontology to given path")]
+    public static async Task<string> SaveAsOntologyAsync(HttpClient client,
+        [Description("Location on the file system specifying where to save ontology. If left empty, it will assume that the currently opened ontology is already associated with a file")] string? path)
     {
-        return "";
+        var response = await client.PostAsJsonAsync("/save", new SaveOntologyRequest(path), JsonSerializerOptions.Web);
+        return await response.Content.ReadAsStringAsync();
     }
 }

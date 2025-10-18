@@ -6,8 +6,8 @@ using ProtegeMCP.Server.Requests;
 
 namespace ProtegeMCP.Server.Tools;
 
-[McpServerToolType]
-public class ProtegeTools
+[McpServerToolType, Description("Tools for CRUD operations on Concepts")]
+public class ConceptTools
 {
     [McpServerTool(Name = "list-concepts")]
     [Description("List all Concepts present in current Ontology")]

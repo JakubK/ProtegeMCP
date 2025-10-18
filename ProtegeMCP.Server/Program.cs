@@ -8,7 +8,7 @@ using ProtegeMCP.Server.Tools;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddMcpServer()
-    .WithTools<ProtegeTools>()
+    .WithTools<ConceptTools>()
     .WithTools<IOTools>()
     .WithStdioServerTransport()
     .WithHttpTransport();

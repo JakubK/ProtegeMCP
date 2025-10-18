@@ -1,16 +1,15 @@
 package com.protegeplugin;
 
 import java.awt.event.ActionEvent;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
 import com.google.gson.Gson;
 import org.protege.editor.owl.model.OWLModelManager;
+import org.protege.editor.owl.model.event.EventType;
 import org.protege.editor.owl.ui.action.ProtegeOWLAction;
 import org.semanticweb.owlapi.model.*;
 
@@ -26,7 +25,87 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
         Thread serverThread = new Thread(() -> {
             try {
                 int port = 8080;
+                try (ServerSocket serverSocket = new ServerSocket(port)) {
+                    serverSocket.setReuseAddress(true);
+                } catch (IOException e) {
+                    return; // Port is already in use
+                }
                 HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+
+                server.createContext("/new", exchange -> {
+                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
+                    {
+                        OWLModelManager modelManager = getOWLModelManager();
+                        OWLOntologyManager ontologyManager = modelManager.getOWLOntologyManager();
+
+                        IRI newOntologyIRI = IRI.create("http://example.org/newOntology");
+                        try {
+                            OWLOntology newOntology = ontologyManager.createOntology(newOntologyIRI);
+                            modelManager.setActiveOntology(newOntology);
+                            modelManager.fireEvent(EventType.ACTIVE_ONTOLOGY_CHANGED);
+                            sendResponse(exchange, "New ontology created successfully");
+                        } catch (OWLOntologyCreationException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    else {
+                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    }
+                });
+
+                server.createContext("/open", exchange -> {
+                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
+                    {
+                        OWLModelManager modelManager = getOWLModelManager();
+                        OWLOntologyManager ontologyManager = modelManager.getOWLOntologyManager();
+
+                        Gson gson = new Gson();
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
+                            OpenOntologyRequest request = gson.fromJson(reader, OpenOntologyRequest.class);
+                            File file = new File(request.path);
+                            OWLOntology loadedOntology;
+                            loadedOntology = ontologyManager.loadOntologyFromOntologyDocument(file);
+                            modelManager.setActiveOntology(loadedOntology);
+                            modelManager.fireEvent(EventType.ACTIVE_ONTOLOGY_CHANGED);
+                            sendResponse(exchange, "Ontology opened successfully");
+                        }
+                        catch (Exception e) {
+                            sendResponse(exchange, "Error: " + e.getMessage());
+                        }
+                    }
+                    else {
+                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    }
+                });
+
+                server.createContext("/save", exchange -> {
+                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
+                    {
+                        Gson gson = new Gson();
+                        modelManager = getOWLModelManager();
+                        OWLOntology activeOntology = modelManager.getActiveOntology();
+                        OWLOntologyManager ontologyManager = modelManager.getOWLOntologyManager();
+
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
+                            SaveOntologyRequest request = gson.fromJson(reader, SaveOntologyRequest.class);
+                            if (request.path == null || request.path.trim().isEmpty())
+                            {
+                                modelManager.save();
+                            } else {
+                                File file = new File(request.path);
+                                IRI documentIRI = IRI.create(file.toURI());
+                                ontologyManager.saveOntology(activeOntology, documentIRI);
+                            }
+
+                            sendResponse(exchange, "Ontology saved successfully");
+                        } catch (OWLOntologyStorageException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    else {
+                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    }
+                });
 
                 server.createContext("/subclass", exchange -> {
                     if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
