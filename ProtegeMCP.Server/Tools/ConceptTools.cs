@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ModelContextProtocol.Server;
-using ProtegeMCP.Server.Requests;
+using ProtegeMCP.Server.Requests.Concept;
 
 namespace ProtegeMCP.Server.Tools;
 
@@ -20,6 +20,10 @@ public class ConceptTools
     [McpServerTool(Name = "create-concept")]
     [Description(@"
         Allows to create new Concept in current Ontology. Returns status string which informs if operation was successful.
+        Example Payload:
+        {
+            'conceptUri': 'http://www.example.org/animals#Mammal'
+        }
     ")]
     public static async Task<string> CreateConceptAsync(HttpClient client,
         [Description("URI of the concept to be created. Example value: http://www.example.org/animals#Mammal")] string conceptUri
@@ -28,11 +32,32 @@ public class ConceptTools
         var response = await client.PostAsJsonAsync("/concepts", new CreateNewConceptRequest(conceptUri), JsonSerializerOptions.Web);
         return await response.Content.ReadAsStringAsync();
     }
+    
+    [McpServerTool(Name = "delete-concept")]
+    [Description(@"
+        Allows to delete Concept from current Ontology. Returns status string which informs if operation was successful.
+        Example Payload:
+        {
+            'conceptUri': 'http://www.example.org/animals#Mammal'
+        }
+    ")]
+    public static async Task<string> DeleteConceptAsync(HttpClient client,
+        [Description("URI of the concept to be deleted. Example value: http://www.example.org/animals#Mammal")] string conceptUri
+    )
+    {
+        var response = await client.PostAsJsonAsync("/delete-concept", new DeleteConceptRequest(conceptUri), JsonSerializerOptions.Web);
+        return await response.Content.ReadAsStringAsync();
+    }
 
     [McpServerTool(Name = "subclass-concept")]
     [Description(@"
         Changes parent of given concept in current Ontology.
         Both given concept URIs must already exist in the Ontology.
+        Example Payload:
+        {
+            'childUrl': 'http://www.example.org/animals#Mammal',
+            'parentUri': 'http://www.example.org/animals#Parent'
+        }
     ")]
     public static async Task<string> SubclassConceptAsync(HttpClient client,
         [Description("URI of the child concept. Example value: http://www.example.org/animals#Mammal")] string childUri,

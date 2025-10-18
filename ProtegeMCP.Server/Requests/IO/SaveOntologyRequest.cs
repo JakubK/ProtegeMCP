@@ -1,3 +1,3 @@
-namespace ProtegeMCP.Server.Requests;
+namespace ProtegeMCP.Server.Requests.IO;
 
 public record SaveOntologyRequest(string? Path);

@@ -145,6 +145,41 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     }
                 });
 
+                server.createContext("/delete-concept", exchange -> {
+                    if("POST".equalsIgnoreCase(exchange.getRequestMethod()))
+                    {
+                        modelManager = getOWLModelManager();
+                        OWLOntology activeOntology = modelManager.getActiveOntology();
+                        OWLDataFactory factory = modelManager.getOWLDataFactory();
+                        Gson gson = new Gson();
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
+                            DeleteConceptRequest concept = gson.fromJson(reader, DeleteConceptRequest.class);
+
+                            OWLClass childClass = factory.getOWLClass(IRI.create(concept.uri));
+                            Set<OWLAxiom> referencingAxioms = activeOntology.getReferencingAxioms(childClass);
+
+                            SwingUtilities.invokeLater(() -> {
+
+                                for(OWLAxiom x : referencingAxioms)
+                                {
+                                    modelManager.applyChange(new RemoveAxiom(activeOntology, x));
+                                }
+                                try {
+                                    sendResponse(exchange, "Success");
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        } catch (Exception e) {
+                            sendResponse(exchange, "Error: " + e.getMessage());
+                        }
+                    }
+                    else
+                    {
+                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    }
+                });
+
                 server.createContext("/concepts", exchange -> {
                     modelManager = getOWLModelManager();
                     OWLOntology activeOntology = modelManager.getActiveOntology();
@@ -175,17 +210,17 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                         } catch (Exception e) {
                             sendResponse(exchange, "Error: " + e.getMessage());
                         }
-                    } else
+                    }
+                    else
                     {
                         exchange.sendResponseHeaders(405, -1); // Method Not Allowed
                     }
                 });
 
-                server.setExecutor(null); // default executor
+                server.setExecutor(null);
                 server.start();
                 System.out.println("✅ Server running at http://localhost:" + port);
 
-                // Keep a reference to stop later
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> server.stop(0)));
 
             } catch (IOException e) {
