@@ -28,6 +28,44 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 int port = 8080;
                 HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
+                server.createContext("/subclass", exchange -> {
+                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
+                    {
+                        modelManager = getOWLModelManager();
+                        OWLOntology activeOntology = modelManager.getActiveOntology();
+                        OWLDataFactory factory = modelManager.getOWLDataFactory();
+                        Gson gson = new Gson();
+
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
+                            SubclassConceptRequest concept = gson.fromJson(reader, SubclassConceptRequest.class);
+
+                            OWLClass childClass = factory.getOWLClass(IRI.create(concept.childUri));
+                            OWLClass parentClass = factory.getOWLThing();
+                            if(concept.parentUri != null && !concept.parentUri.trim().isEmpty()){
+                                parentClass = factory.getOWLClass(IRI.create(concept.parentUri));
+                            }
+
+                            OWLSubClassOfAxiom subClassAxiom = factory.getOWLSubClassOfAxiom(childClass, parentClass);
+
+                            SwingUtilities.invokeLater(() -> {
+                                modelManager.applyChange(new AddAxiom(activeOntology, subClassAxiom));
+
+                                try {
+                                    sendResponse(exchange, "Success");
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+
+                            });
+                        } catch (Exception e) {
+                            sendResponse(exchange, "Error: " + e.getMessage());
+                        }
+
+                    } else {
+                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    }
+                });
+
                 server.createContext("/concepts", exchange -> {
                     modelManager = getOWLModelManager();
                     OWLOntology activeOntology = modelManager.getActiveOntology();
@@ -42,14 +80,13 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     else if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
                     {
                         try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
-                            System.out.println("START");
                             CreateNewConceptRequest concept = gson.fromJson(reader, CreateNewConceptRequest.class);
-                            OWLClass newClass = factory.getOWLClass(IRI.create(concept.uri));
-                            OWLDeclarationAxiom declaration = factory.getOWLDeclarationAxiom(newClass);
-                            AddAxiom addAxiom = new AddAxiom(activeOntology, declaration);
+
+                            OWLClass childClass = factory.getOWLClass(IRI.create(concept.uri));
+                            OWLDeclarationAxiom declaration = factory.getOWLDeclarationAxiom(childClass);
 
                             SwingUtilities.invokeLater(() -> {
-                                modelManager.applyChange(addAxiom);
+                                modelManager.applyChange(new AddAxiom(activeOntology, declaration));
                                 try {
                                     sendResponse(exchange, "Success");
                                 } catch (IOException e) {

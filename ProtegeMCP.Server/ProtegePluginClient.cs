@@ -9,13 +9,18 @@ public class ProtegePluginClient(HttpClient httpClient)
     public async Task<string> ListConceptsAsync()
     {
         var response = await httpClient.GetAsync("/concepts");
-        var text = await response.Content.ReadAsStringAsync();
-        return text;
+        return await response.Content.ReadAsStringAsync();
     }
 
     public async Task<string> CreateConceptAsync(CreateNewConceptRequest request)
     {
         var response = await httpClient.PostAsJsonAsync("/concepts", request, JsonSerializerOptions.Web);
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    public async Task<string> SubclassConceptAsync(SubclassConceptRequest request)
+    {
+        var response = await httpClient.PostAsJsonAsync("/subclass", request, JsonSerializerOptions.Web);
         return await response.Content.ReadAsStringAsync();
     }
 }
