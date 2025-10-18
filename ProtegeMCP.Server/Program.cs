@@ -9,13 +9,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddMcpServer()
     .WithTools<ProtegeTools>()
+    .WithTools<IOTools>()
     .WithStdioServerTransport()
     .WithHttpTransport();
 
-builder.Services.AddHttpClient<ProtegePluginClient>(client =>
-{
-    client.BaseAddress = new Uri("http://localhost:8080");
-});
+
+using var httpClient = new HttpClient();
+httpClient.BaseAddress = new Uri("http://localhost:8080");
+builder.Services.AddSingleton(httpClient);
 
 var app = builder.Build();
 app.MapMcp();
