@@ -242,7 +242,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
 
     private Map<String, String> parseQueryParams(HttpExchange exchange) {
         Map<String, String> result = new HashMap<>();
-        String query = exchange.getRequestURI().getQuery(); // e.g. offset=10&limit=100
+        String query = exchange.getRequestURI().getQuery();
         if (query != null) {
             String[] pairs = query.split("&");
             for (String p : pairs) {
