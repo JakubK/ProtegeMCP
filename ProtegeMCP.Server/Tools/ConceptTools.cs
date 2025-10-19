@@ -1,8 +1,6 @@
 using System.ComponentModel;
-using System.Net.Http.Json;
-using System.Text.Json;
+using Microsoft.AspNetCore.WebUtilities;
 using ModelContextProtocol.Server;
-using ProtegeMCP.Server.Requests.Concept;
 
 namespace ProtegeMCP.Server.Tools;
 
@@ -29,7 +27,12 @@ public class ConceptTools
         [Description("URI of the concept to be created. Example value: http://www.example.org/animals#Mammal")] string conceptUri
     )
     {
-        var response = await client.PostAsJsonAsync("/concepts", new CreateNewConceptRequest(conceptUri), JsonSerializerOptions.Web);
+        var query = new Dictionary<string, string?>
+        {
+            ["uri"] = conceptUri
+        };
+        var url = QueryHelpers.AddQueryString("/concepts", query);
+        var response = await client.PostAsync(url, null);
         return await response.Content.ReadAsStringAsync();
     }
     
@@ -47,7 +50,13 @@ public class ConceptTools
         [Description("New URI of Concept. Example value: http://www.example.org/animals#Mammal")] string newUri
     )
     {
-        var response = await client.PostAsJsonAsync("/rename-concept", new RenameConceptRequest(oldUri, newUri), JsonSerializerOptions.Web);
+        var query = new Dictionary<string, string?>
+        {
+            ["oldUri"] = oldUri,
+            ["newUri"] = newUri
+        };
+        var url = QueryHelpers.AddQueryString("/rename-concept", query);
+        var response = await client.PostAsync(url, null);
         return await response.Content.ReadAsStringAsync();
     }
     
@@ -63,7 +72,12 @@ public class ConceptTools
         [Description("URI of the concept to be deleted. Example value: http://www.example.org/animals#Mammal")] string conceptUri
     )
     {
-        var response = await client.PostAsJsonAsync("/delete-concept", new DeleteConceptRequest(conceptUri), JsonSerializerOptions.Web);
+        var query = new Dictionary<string, string?>
+        {
+            ["conceptUri"] = conceptUri,
+        };
+        var url = QueryHelpers.AddQueryString("/delete-concept", query);
+        var response = await client.DeleteAsync(url);
         return await response.Content.ReadAsStringAsync();
     }
 
@@ -81,7 +95,13 @@ public class ConceptTools
         [Description("URI of the child concept. Example value: http://www.example.org/animals#Mammal")] string childUri,
         [Description("URI of the parent concept. When skipped, the owl:Thing will become a parent")] string? parentUri)
     {
-        var response = await client.PostAsJsonAsync("/subclass", new SubclassConceptRequest(childUri, parentUri), JsonSerializerOptions.Web);
+        var query = new Dictionary<string, string?>
+        {
+            ["childUri"] = childUri,
+            ["parentUri"] = parentUri,
+        };
+        var url = QueryHelpers.AddQueryString("/subclass-concept", query);
+        var response = await client.PostAsync(url, null);
         return await response.Content.ReadAsStringAsync();
     }
 }

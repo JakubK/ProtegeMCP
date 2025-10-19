@@ -4,11 +4,13 @@ import java.awt.event.ActionEvent;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import com.google.gson.Gson;
 import org.protege.editor.owl.model.OWLModelManager;
 import org.protege.editor.owl.model.event.EventType;
 import org.protege.editor.owl.ui.action.ProtegeOWLAction;
@@ -35,45 +37,30 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
                 server.createContext("/rename-concept", exchange -> {
-                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                        OWLOntology activeOntology = modelManager.getActiveOntology();
-                        OWLDataFactory dataFactory = modelManager.getOWLDataFactory();
+                    Map<String, String> qparams = parseQueryParams(exchange);
 
-                        Gson gson = new Gson();
-                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
-                            RenameConceptRequest request = gson.fromJson(reader, RenameConceptRequest.class);
+                    // Build new IRI
+                    IRI oldIRI = IRI.create(qparams.get("oldUri"));
+                    IRI newIRI = IRI.create(qparams.get("newUri"));
 
-                            // Build new IRI
-                            IRI oldIRI = IRI.create(request.oldUri);
-                            IRI newIRI = IRI.create(request.newUri);
+                    // Create renamer
+                    OWLEntityRenamer renamer = new OWLEntityRenamer(
+                        modelManager.getOWLOntologyManager(),
+                        modelManager.getOntologies()
+                    );
+                    List<OWLOntologyChange> changes = renamer.changeIRI(oldIRI, newIRI);
 
-                            // Create renamer
-                            OWLEntityRenamer renamer = new OWLEntityRenamer(
-                                    modelManager.getOWLOntologyManager(),
-                                    modelManager.getOntologies()
-                            );
-                            List<OWLOntologyChange> changes = renamer.changeIRI(oldIRI, newIRI);
-
-                            SwingUtilities.invokeLater(() -> {
-                                for(OWLOntologyChange change : changes)
-                                {
-                                    modelManager.applyChange(change);
-                                }
-                                try {
-                                    sendResponse(exchange, "Success");
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
+                    SwingUtilities.invokeLater(() -> {
+                        for(OWLOntologyChange change : changes)
+                        {
+                            modelManager.applyChange(change);
                         }
-                        catch (Exception e) {
-                            sendResponse(exchange, "Error: " + e.getMessage());
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
-
-
-                    } else {
-                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
-                    }
+                    });
                 });
 
                 server.createContext("/new", exchange -> {
@@ -98,166 +85,129 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/open", exchange -> {
-                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
-                    {
-                        OWLModelManager modelManager = getOWLModelManager();
-                        OWLOntologyManager ontologyManager = modelManager.getOWLOntologyManager();
+                    OWLModelManager modelManager = getOWLModelManager();
+                    OWLOntologyManager ontologyManager = modelManager.getOWLOntologyManager();
+                    Map<String, String> qparams = parseQueryParams(exchange);
 
-                        Gson gson = new Gson();
-                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
-                            OpenOntologyRequest request = gson.fromJson(reader, OpenOntologyRequest.class);
-                            File file = new File(request.path);
-                            OWLOntology loadedOntology;
-                            loadedOntology = ontologyManager.loadOntologyFromOntologyDocument(file);
-                            modelManager.setActiveOntology(loadedOntology);
-                            modelManager.fireEvent(EventType.ACTIVE_ONTOLOGY_CHANGED);
-                            sendResponse(exchange, "Ontology opened successfully");
-                        }
-                        catch (Exception e) {
-                            sendResponse(exchange, "Error: " + e.getMessage());
-                        }
-                    }
-                    else {
-                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    String path = qparams.get("path");
+                    File file = new File(path);
+                    OWLOntology loadedOntology;
+
+                    try {
+                        loadedOntology = ontologyManager.loadOntologyFromOntologyDocument(file);
+                        modelManager.setActiveOntology(loadedOntology);
+                        modelManager.fireEvent(EventType.ACTIVE_ONTOLOGY_CHANGED);
+                        sendResponse(exchange, "Ontology opened successfully");
+                    } catch (OWLOntologyCreationException e) {
+                        sendResponse(exchange, "Error occured while Opening " + path
+                                + " ontology: " + e.getMessage());
                     }
                 });
 
                 server.createContext("/save", exchange -> {
-                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
-                    {
-                        Gson gson = new Gson();
                         modelManager = getOWLModelManager();
                         OWLOntology activeOntology = modelManager.getActiveOntology();
                         OWLOntologyManager ontologyManager = modelManager.getOWLOntologyManager();
 
-                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
-                            SaveOntologyRequest request = gson.fromJson(reader, SaveOntologyRequest.class);
-                            if (request.path == null || request.path.trim().isEmpty())
-                            {
-                                modelManager.save();
-                            } else {
-                                File file = new File(request.path);
-                                IRI documentIRI = IRI.create(file.toURI());
-                                ontologyManager.saveOntology(activeOntology, documentIRI);
-                            }
+                        Map<String, String> qparams = parseQueryParams(exchange);
+                        String path = qparams.get("path");
 
-                            sendResponse(exchange, "Ontology saved successfully");
-                        } catch (OWLOntologyStorageException e) {
-                            throw new RuntimeException(e);
+                        if (path == null || path.trim().isEmpty())
+                        {
+                            try {
+                                modelManager.save();
+                                sendResponse(exchange, "Ontology saved successfully");
+                            } catch (OWLOntologyStorageException e) {
+                                sendResponse(exchange, "Error occured while saving at" + path
+                                        + " error:" + e.getMessage());
+                            }
+                        } else {
+                            File file = new File(path);
+                            IRI documentIRI = IRI.create(file.toURI());
+                            try {
+                                ontologyManager.saveOntology(activeOntology, documentIRI);
+                                sendResponse(exchange, "Ontology saved successfully");
+                            } catch (OWLOntologyStorageException e) {
+                                sendResponse(exchange, "Error occured while saving at" + path
+                                        + " error:" + e.getMessage());
+                            }
                         }
-                    }
-                    else {
-                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
-                    }
                 });
 
-                server.createContext("/subclass", exchange -> {
-                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
-                    {
+                server.createContext("/subclass-concept", exchange -> {
                         modelManager = getOWLModelManager();
                         OWLOntology activeOntology = modelManager.getActiveOntology();
                         OWLDataFactory factory = modelManager.getOWLDataFactory();
-                        Gson gson = new Gson();
 
-                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
-                            SubclassConceptRequest concept = gson.fromJson(reader, SubclassConceptRequest.class);
+                        Map<String, String> qparams = parseQueryParams(exchange);
+                        OWLClass childClass = factory.getOWLClass(IRI.create(qparams.get("childUri")));
+                        OWLClass parentClass = factory.getOWLThing();
 
-                            OWLClass childClass = factory.getOWLClass(IRI.create(concept.childUri));
-                            OWLClass parentClass = factory.getOWLThing();
-                            if(concept.parentUri != null && !concept.parentUri.trim().isEmpty()){
-                                parentClass = factory.getOWLClass(IRI.create(concept.parentUri));
-                            }
+                        String parentUri = qparams.get("parentUri");
 
-                            OWLSubClassOfAxiom subClassAxiom = factory.getOWLSubClassOfAxiom(childClass, parentClass);
-
-                            SwingUtilities.invokeLater(() -> {
-                                modelManager.applyChange(new AddAxiom(activeOntology, subClassAxiom));
-
-                                try {
-                                    sendResponse(exchange, "Success");
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-
-                            });
-                        } catch (Exception e) {
-                            sendResponse(exchange, "Error: " + e.getMessage());
+                        if(parentUri != null && !parentUri.trim().isEmpty()){
+                            parentClass = factory.getOWLClass(IRI.create(parentUri));
                         }
 
-                    } else {
-                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
-                    }
+                        OWLSubClassOfAxiom subClassAxiom = factory.getOWLSubClassOfAxiom(childClass, parentClass);
+                        SwingUtilities.invokeLater(() -> {
+                            modelManager.applyChange(new AddAxiom(activeOntology, subClassAxiom));
+
+                            try {
+                                sendResponse(exchange, "Success");
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
                 });
 
                 server.createContext("/delete-concept", exchange -> {
-                    if("POST".equalsIgnoreCase(exchange.getRequestMethod()))
-                    {
-                        modelManager = getOWLModelManager();
-                        OWLOntology activeOntology = modelManager.getActiveOntology();
-                        OWLDataFactory factory = modelManager.getOWLDataFactory();
-                        Gson gson = new Gson();
-                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
-                            DeleteConceptRequest concept = gson.fromJson(reader, DeleteConceptRequest.class);
+                    modelManager = getOWLModelManager();
+                    OWLOntology activeOntology = modelManager.getActiveOntology();
+                    OWLDataFactory factory = modelManager.getOWLDataFactory();
 
-                            OWLClass childClass = factory.getOWLClass(IRI.create(concept.uri));
-                            Set<OWLAxiom> referencingAxioms = activeOntology.getReferencingAxioms(childClass);
+                    Map<String, String> qparams = parseQueryParams(exchange);
+                    OWLClass childClass = factory.getOWLClass(IRI.create(qparams.get("conceptUri")));
+                    Set<OWLAxiom> referencingAxioms = activeOntology.getReferencingAxioms(childClass);
 
-                            SwingUtilities.invokeLater(() -> {
+                    SwingUtilities.invokeLater(() -> {
 
-                                for(OWLAxiom x : referencingAxioms)
-                                {
-                                    modelManager.applyChange(new RemoveAxiom(activeOntology, x));
-                                }
-                                try {
-                                    sendResponse(exchange, "Success");
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
-                        } catch (Exception e) {
-                            sendResponse(exchange, "Error: " + e.getMessage());
+                        for(OWLAxiom x : referencingAxioms)
+                        {
+                            modelManager.applyChange(new RemoveAxiom(activeOntology, x));
                         }
-                    }
-                    else
-                    {
-                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
-                    }
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
                 });
 
                 server.createContext("/concepts", exchange -> {
                     modelManager = getOWLModelManager();
                     OWLOntology activeOntology = modelManager.getActiveOntology();
                     OWLDataFactory factory = modelManager.getOWLDataFactory();
-                    Gson gson = new Gson();
 
                     if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
                          Set<OWLClass> presentConcepts = activeOntology.getClassesInSignature();
-                         String response = gson.toJson(presentConcepts);
+                         String response = presentConcepts.toString();
                          sendResponse(exchange, response);
                     }
                     else if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
                     {
-                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
-                            CreateNewConceptRequest concept = gson.fromJson(reader, CreateNewConceptRequest.class);
+                        Map<String, String> qparams = parseQueryParams(exchange);
+                        OWLClass childClass = factory.getOWLClass(IRI.create(qparams.get("uri")));
+                        OWLDeclarationAxiom declaration = factory.getOWLDeclarationAxiom(childClass);
 
-                            OWLClass childClass = factory.getOWLClass(IRI.create(concept.uri));
-                            OWLDeclarationAxiom declaration = factory.getOWLDeclarationAxiom(childClass);
-
-                            SwingUtilities.invokeLater(() -> {
-                                modelManager.applyChange(new AddAxiom(activeOntology, declaration));
-                                try {
-                                    sendResponse(exchange, "Success");
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
-                        } catch (Exception e) {
-                            sendResponse(exchange, "Error: " + e.getMessage());
-                        }
-                    }
-                    else
-                    {
-                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                        SwingUtilities.invokeLater(() -> {
+                            modelManager.applyChange(new AddAxiom(activeOntology, declaration));
+                            try {
+                                sendResponse(exchange, "Success");
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
                     }
                 });
 
@@ -289,4 +239,26 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
     public void dispose() {}
 
     public void actionPerformed(ActionEvent event) {}
+
+    private Map<String, String> parseQueryParams(HttpExchange exchange) {
+        Map<String, String> result = new HashMap<>();
+        String query = exchange.getRequestURI().getQuery(); // e.g. offset=10&limit=100
+        if (query != null) {
+            String[] pairs = query.split("&");
+            for (String p : pairs) {
+                String[] kv = p.split("=");
+                if (kv.length == 2) {
+                    // URL decode parameter values
+                    try {
+                        String key = URLDecoder.decode(kv[0], StandardCharsets.UTF_8);
+                        String value = URLDecoder.decode(kv[1], StandardCharsets.UTF_8);
+                        result.put(key, value);
+                    } catch (Exception e) {
+                        System.out.println( "Error decoding URL parameter" + e);
+                    }
+                }
+            }
+        }
+        return result;
+    }
 }

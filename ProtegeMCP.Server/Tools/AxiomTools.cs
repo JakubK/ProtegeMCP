@@ -3,7 +3,6 @@ using ModelContextProtocol.Server;
 
 namespace ProtegeMCP.Server.Tools;
 
-
 [McpServerToolType, Description("Tools for CRUD operations on Axioms of Concepts")]
 public class AxiomTools
 {
