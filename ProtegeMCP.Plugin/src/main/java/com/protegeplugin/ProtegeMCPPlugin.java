@@ -5,6 +5,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
 
 import com.google.gson.Gson;
@@ -15,6 +16,7 @@ import org.semanticweb.owlapi.model.*;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import org.semanticweb.owlapi.util.OWLEntityRenamer;
 
 import javax.swing.*;
 
@@ -31,6 +33,48 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     return; // Port is already in use
                 }
                 HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+
+                server.createContext("/rename-concept", exchange -> {
+                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                        OWLOntology activeOntology = modelManager.getActiveOntology();
+                        OWLDataFactory dataFactory = modelManager.getOWLDataFactory();
+
+                        Gson gson = new Gson();
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
+                            RenameConceptRequest request = gson.fromJson(reader, RenameConceptRequest.class);
+
+                            // Build new IRI
+                            IRI oldIRI = IRI.create(request.oldUri);
+                            IRI newIRI = IRI.create(request.newUri);
+
+                            // Create renamer
+                            OWLEntityRenamer renamer = new OWLEntityRenamer(
+                                    modelManager.getOWLOntologyManager(),
+                                    modelManager.getOntologies()
+                            );
+                            List<OWLOntologyChange> changes = renamer.changeIRI(oldIRI, newIRI);
+
+                            SwingUtilities.invokeLater(() -> {
+                                for(OWLOntologyChange change : changes)
+                                {
+                                    modelManager.applyChange(change);
+                                }
+                                try {
+                                    sendResponse(exchange, "Success");
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        }
+                        catch (Exception e) {
+                            sendResponse(exchange, "Error: " + e.getMessage());
+                        }
+
+
+                    } else {
+                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    }
+                });
 
                 server.createContext("/new", exchange -> {
                     if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))

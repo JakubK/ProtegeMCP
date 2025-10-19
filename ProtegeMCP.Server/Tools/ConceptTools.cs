@@ -33,6 +33,24 @@ public class ConceptTools
         return await response.Content.ReadAsStringAsync();
     }
     
+    [McpServerTool(Name = "rename-concept")]
+    [Description(@"
+        Allows to rename already existing Concept to new one. Returns status string which informs if operation was successful.
+        Example Payload:
+        {
+            'oldUri': 'http://www.example.org/animals#Mammal',
+            'newName': 'http://www.example.org/animals#SomethingElse'
+        }
+    ")]
+    public static async Task<string> RenameConceptAsync(HttpClient client,
+        [Description("URI of the Concept to be renamed. Example value: http://www.example.org/animals#Mammal")] string oldUri,
+        [Description("New URI of Concept. Example value: http://www.example.org/animals#Mammal")] string newUri
+    )
+    {
+        var response = await client.PostAsJsonAsync("/rename-concept", new RenameConceptRequest(oldUri, newUri), JsonSerializerOptions.Web);
+        return await response.Content.ReadAsStringAsync();
+    }
+    
     [McpServerTool(Name = "delete-concept")]
     [Description(@"
         Allows to delete Concept from current Ontology. Returns status string which informs if operation was successful.
