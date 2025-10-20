@@ -35,17 +35,14 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
             try {
                 InputStream in = ProtegeMCPPlugin.class.getResourceAsStream("/ProtegeMCP.Server");
 
-
                 String tmpDir = System.getProperty("java.io.tmpdir"); // OS-independent
                 Path temp = Files.createTempFile(Paths.get(tmpDir), "ProtegeMCP.Server", ".dll");
-                System.out.println("Pre copy");
+
                 Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
-                System.out.println("After copy");
+
                 temp.toFile().setExecutable(true);
-                System.out.println("Before run");
-                new ProcessBuilder(temp.toString()).start();
-                System.out.println("After run");
                 temp.toFile().deleteOnExit();
+                new ProcessBuilder(temp.toString()).start();
             } catch (Exception e) {
                 System.out.println("Error when starting MCP Server process" + e.getMessage());
             }

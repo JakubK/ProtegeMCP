@@ -35,21 +35,11 @@ jobs:
         ls -la ../ProtegeMCP.Plugin/src/main/resources/
       working-directory: ./ProtegeMCP.Server
 
-    
     - name: Set up JDK 25
       uses: actions/setup-java@v3
       with:
         distribution: temurin
         java-version: 25
-
-    - name: Cache Maven packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
-      working-directory: ./ProtegeMCP.Plugin
 
     - name: Build with Maven
       run: mvn clean package --batch-mode
