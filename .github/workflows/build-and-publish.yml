@@ -17,10 +17,14 @@ jobs:
         dotnet-version: '9.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore ./ProtegeMCP.Server.slnx
+      run: dotnet restore
+      working-directory: ./ProtegeMCP.Server
 
     - name: Dotnet Build & Publish
       run: |
-        dotnet build --configuration Release --no-restore ./ProtegeMCP.Server.slnx
-        dotnet publish -c Release -o ./publish ./ProtegeMCP.Server.slnx
+        dotnet build --configuration Release --no-restore
+        dotnet publish -c Release -o ./publish
+
+        ls -la ./publish
+      working-directory: ./ProtegeMCP.Server
 
