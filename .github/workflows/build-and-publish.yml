@@ -18,9 +18,11 @@ jobs:
 
     - name: Restore dependencies
       run: dotnet restore
+      working-directory: ./ProtegeMCP.Server
 
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
+    - name: Dotnet Build & Publish
+      run: |
+        dotnet build --configuration Release --no-restore
+        dotnet publish -c Release -o ./publish
+      working-directory: ./ProtegeMCP.Server
 
-    - name: Publish single-file app
-      run: dotnet publish -c Release
