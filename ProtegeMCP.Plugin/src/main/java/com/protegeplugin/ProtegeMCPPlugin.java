@@ -6,6 +6,10 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +30,27 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
     private OWLModelManager modelManager;
 
     public void initialise() {
+
+        Thread mcpThread = new Thread(() -> {
+            try {
+                InputStream in = ProtegeMCPPlugin.class.getResourceAsStream("/ProtegeMCP.Server");
+
+
+                String tmpDir = System.getProperty("java.io.tmpdir"); // OS-independent
+                Path temp = Files.createTempFile(Paths.get(tmpDir), "ProtegeMCP.Server", ".dll");
+                System.out.println("Pre copy");
+                Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("After copy");
+                temp.toFile().setExecutable(true);
+                System.out.println("Before run");
+                new ProcessBuilder(temp.toString()).start();
+                System.out.println("After run");
+                temp.toFile().deleteOnExit();
+            } catch (Exception e) {
+                System.out.println("Error when starting MCP Server process" + e.getMessage());
+            }
+        });
+
         Thread serverThread = new Thread(() -> {
             try {
                 int port = 8080;
@@ -222,9 +247,11 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
             }
         });
 
-        // Mark as daemon, so it doesn’t prevent Protege shutdown
         serverThread.setDaemon(true);
         serverThread.start();
+
+        mcpThread.setDaemon(true);
+        mcpThread.start();
     }
 
     private void sendResponse(HttpExchange exchange, String response) throws IOException {
