@@ -22,7 +22,6 @@ jobs:
 
     - name: Dotnet Build & Publish
       run: |
-        dotnet build --configuration Release --no-restore
         dotnet publish -c Release -o ./publish
 
         ls -la ./publish
@@ -30,7 +29,7 @@ jobs:
 
     - name: Move artifacts to java resources folder
       run: |
-        mv ./publish/* ../ProtegeMCP.Plugin/src/main/resources/
+        mv ./publish/ProtegeMCP.Server ../ProtegeMCP.Plugin/src/main/resources/
 
         ls -la ../ProtegeMCP.Plugin/src/main/resources/
       working-directory: ./ProtegeMCP.Server
@@ -44,3 +43,9 @@ jobs:
     - name: Build with Maven
       run: mvn clean package --batch-mode
       working-directory: ./ProtegeMCP.Plugin
+
+    - name: Upload JAR artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ProtegeMCP.Plugin
+        path: ./ProtegeMCP.Plugin/target/*.jar
