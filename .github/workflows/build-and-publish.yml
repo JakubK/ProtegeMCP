@@ -1,4 +1,4 @@
-name: Build .NET 9 Application
+name: Build & Publish Protege MCP Server Plugin
 
 on:
   workflow_dispatch:
@@ -17,12 +17,10 @@ jobs:
         dotnet-version: '9.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore
-      working-directory: ./ProtegeMCP.Server
+      run: dotnet restore ./ProtegeMCP.Server.slnx
 
     - name: Dotnet Build & Publish
       run: |
-        dotnet build --configuration Release --no-restore
-        dotnet publish -c Release -o ./publish
-      working-directory: ./ProtegeMCP.Server
+        dotnet build --configuration Release --no-restore ./ProtegeMCP.Server.slnx
+        dotnet publish -c Release -o ./publish ./ProtegeMCP.Server.slnx
 
