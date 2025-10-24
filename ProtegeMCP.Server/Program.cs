@@ -2,7 +2,6 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using ProtegeMCP.Server;
 using ProtegeMCP.Server.Tools;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,9 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMcpServer()
     .WithTools<ConceptTools>()
     .WithTools<IOTools>()
+    .WithTools<AxiomTools>()
     .WithStdioServerTransport()
     .WithHttpTransport();
-
 
 using var httpClient = new HttpClient();
 httpClient.BaseAddress = new Uri("http://localhost:8080");

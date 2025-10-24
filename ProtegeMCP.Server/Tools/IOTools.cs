@@ -7,6 +7,14 @@ namespace ProtegeMCP.Server.Tools;
 [McpServerToolType,  Description("Tools for IO operations on ontology saved on filesystem")]
 public class IOTools
 {
+    [McpServerTool(Name = "get-current-ontology")]
+    [Description("Returns information about what is the current Ontology")]
+    public static async Task<string> GetCurrentOntologyAsync(HttpClient client)
+    {
+        var response = await client.GetAsync("/get-current-ontology");
+        return await response.Content.ReadAsStringAsync();
+    }
+    
     [McpServerTool(Name = "new-ontology")]
     [Description("Creates new blank ontology and switches workspace to it")]
     public static async Task<string> NewOntologyAsync(HttpClient client)
@@ -25,7 +33,7 @@ public class IOTools
         "
     )]
     public static async Task<string> OpenOntologyAsync(HttpClient client, 
-        [Description("Required path to file with ontology")] string path)
+        [Description("path: Required path to file with ontology")] string path)
     {
         var query = new Dictionary<string, string?>
         {
@@ -45,7 +53,7 @@ public class IOTools
         }
     ")]
     public static async Task<string> SaveAsOntologyAsync(HttpClient client,
-        [Description("Location on the file system specifying where to save ontology. If left empty, it will assume that the currently opened ontology is already associated with a file")] string? path)
+        [Description("path: Location on the file system specifying where to save ontology. If left empty, it will assume that the currently opened ontology is already associated with a file")] string? path)
     {
         var query = new Dictionary<string, string?>
         {

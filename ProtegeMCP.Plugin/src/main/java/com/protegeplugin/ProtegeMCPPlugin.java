@@ -10,19 +10,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import com.google.gson.Gson;
 import org.protege.editor.owl.model.OWLModelManager;
 import org.protege.editor.owl.model.event.EventType;
 import org.protege.editor.owl.ui.action.ProtegeOWLAction;
+import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl;
 import org.semanticweb.owlapi.model.*;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.semanticweb.owlapi.util.OWLEntityRenamer;
+import org.semanticweb.owlapi.util.ShortFormProvider;
+import org.semanticweb.owlapi.util.SimpleShortFormProvider;
 
 import javax.swing.*;
 
@@ -67,8 +68,8 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
 
                     // Create renamer
                     OWLEntityRenamer renamer = new OWLEntityRenamer(
-                        modelManager.getOWLOntologyManager(),
-                        modelManager.getOntologies()
+                            modelManager.getOWLOntologyManager(),
+                            modelManager.getOntologies()
                     );
                     List<OWLOntologyChange> changes = renamer.changeIRI(oldIRI, newIRI);
 
@@ -127,60 +128,60 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/save", exchange -> {
-                        modelManager = getOWLModelManager();
-                        OWLOntology activeOntology = modelManager.getActiveOntology();
-                        OWLOntologyManager ontologyManager = modelManager.getOWLOntologyManager();
+                    modelManager = getOWLModelManager();
+                    OWLOntology activeOntology = modelManager.getActiveOntology();
+                    OWLOntologyManager ontologyManager = modelManager.getOWLOntologyManager();
 
-                        Map<String, String> qparams = parseQueryParams(exchange);
-                        String path = qparams.get("path");
+                    Map<String, String> qparams = parseQueryParams(exchange);
+                    String path = qparams.get("path");
 
-                        if (path == null || path.trim().isEmpty())
-                        {
-                            try {
-                                modelManager.save();
-                                sendResponse(exchange, "Ontology saved successfully");
-                            } catch (OWLOntologyStorageException e) {
-                                sendResponse(exchange, "Error occured while saving at" + path
-                                        + " error:" + e.getMessage());
-                            }
-                        } else {
-                            File file = new File(path);
-                            IRI documentIRI = IRI.create(file.toURI());
-                            try {
-                                ontologyManager.saveOntology(activeOntology, documentIRI);
-                                sendResponse(exchange, "Ontology saved successfully");
-                            } catch (OWLOntologyStorageException e) {
-                                sendResponse(exchange, "Error occured while saving at" + path
-                                        + " error:" + e.getMessage());
-                            }
+                    if (path == null || path.trim().isEmpty())
+                    {
+                        try {
+                            modelManager.save();
+                            sendResponse(exchange, "Ontology saved successfully");
+                        } catch (OWLOntologyStorageException e) {
+                            sendResponse(exchange, "Error occured while saving at" + path
+                                    + " error:" + e.getMessage());
                         }
+                    } else {
+                        File file = new File(path);
+                        IRI documentIRI = IRI.create(file.toURI());
+                        try {
+                            ontologyManager.saveOntology(activeOntology, documentIRI);
+                            sendResponse(exchange, "Ontology saved successfully");
+                        } catch (OWLOntologyStorageException e) {
+                            sendResponse(exchange, "Error occured while saving at" + path
+                                    + " error:" + e.getMessage());
+                        }
+                    }
                 });
 
                 server.createContext("/subclass-concept", exchange -> {
-                        modelManager = getOWLModelManager();
-                        OWLOntology activeOntology = modelManager.getActiveOntology();
-                        OWLDataFactory factory = modelManager.getOWLDataFactory();
+                    modelManager = getOWLModelManager();
+                    OWLOntology activeOntology = modelManager.getActiveOntology();
+                    OWLDataFactory factory = modelManager.getOWLDataFactory();
 
-                        Map<String, String> qparams = parseQueryParams(exchange);
-                        OWLClass childClass = factory.getOWLClass(IRI.create(qparams.get("childUri")));
-                        OWLClass parentClass = factory.getOWLThing();
+                    Map<String, String> qparams = parseQueryParams(exchange);
+                    OWLClass childClass = factory.getOWLClass(IRI.create(qparams.get("childUri")));
+                    OWLClass parentClass = factory.getOWLThing();
 
-                        String parentUri = qparams.get("parentUri");
+                    String parentUri = qparams.get("parentUri");
 
-                        if(parentUri != null && !parentUri.trim().isEmpty()){
-                            parentClass = factory.getOWLClass(IRI.create(parentUri));
+                    if(parentUri != null && !parentUri.trim().isEmpty()){
+                        parentClass = factory.getOWLClass(IRI.create(parentUri));
+                    }
+
+                    OWLSubClassOfAxiom subClassAxiom = factory.getOWLSubClassOfAxiom(childClass, parentClass);
+                    SwingUtilities.invokeLater(() -> {
+                        modelManager.applyChange(new AddAxiom(activeOntology, subClassAxiom));
+
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
-
-                        OWLSubClassOfAxiom subClassAxiom = factory.getOWLSubClassOfAxiom(childClass, parentClass);
-                        SwingUtilities.invokeLater(() -> {
-                            modelManager.applyChange(new AddAxiom(activeOntology, subClassAxiom));
-
-                            try {
-                                sendResponse(exchange, "Success");
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+                    });
                 });
 
                 server.createContext("/delete-concept", exchange -> {
@@ -212,9 +213,9 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     OWLDataFactory factory = modelManager.getOWLDataFactory();
 
                     if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                         Set<OWLClass> presentConcepts = activeOntology.getClassesInSignature();
-                         String response = presentConcepts.toString();
-                         sendResponse(exchange, response);
+                        Set<OWLClass> presentConcepts = activeOntology.getClassesInSignature();
+                        String response = presentConcepts.toString();
+                        sendResponse(exchange, response);
                     }
                     else if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
                     {
@@ -231,6 +232,52 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                             }
                         });
                     }
+                });
+
+                server.createContext("/list-concept-axioms", exchange -> {
+                    OWLModelManager modelManager = getOWLModelManager();
+                    OWLOntology activeOntology = modelManager.getActiveOntology();
+                    OWLDataFactory factory = modelManager.getOWLDataFactory();
+
+                    ShortFormProvider sfp = new SimpleShortFormProvider();
+                    ManchesterOWLSyntaxOWLObjectRendererImpl renderer = new ManchesterOWLSyntaxOWLObjectRendererImpl();
+
+                    renderer.setShortFormProvider(sfp);
+
+                    Map<String, String> qparams = parseQueryParams(exchange);
+                    OWLClass concept = factory.getOWLClass(IRI.create(qparams.get("uri")));
+
+                    List<String> eqAxioms = new ArrayList<>();
+                    for (var axiom : activeOntology.getEquivalentClassesAxioms(concept)) {
+                        String rendered = renderer.render(axiom);
+                        eqAxioms.add(rendered);
+                    }
+
+                    List<String> subAxioms = new ArrayList<>();
+                    for (var axiom : activeOntology.getSubClassAxiomsForSubClass(concept)) {
+                        String rendered = renderer.render(axiom);
+                        subAxioms.add(rendered);
+                    }
+
+                    List<String> disjointAxioms = new ArrayList<>();
+                    for (var axiom : activeOntology.getDisjointClassesAxioms(concept)) {
+                        String rendered = renderer.render(axiom);
+                        disjointAxioms.add(rendered);
+                    }
+
+                    List<String> disjointUnionAxioms = new ArrayList<>();
+                    for (var axiom : activeOntology.getDisjointUnionAxioms(concept)) {
+                        String rendered = renderer.render(axiom);
+                        disjointUnionAxioms.add(rendered);
+                    }
+
+                    List<String> hasKeyAxioms = new ArrayList<>();
+                    for (var axiom : activeOntology.getHasKeyAxioms(concept)) {
+                        String rendered = renderer.render(axiom);
+                        hasKeyAxioms.add(rendered);
+                    }
+
+                    sendResponse(exchange, new Gson().toJson(new ListConceptAxiomsResponse(eqAxioms, subAxioms, disjointAxioms, disjointUnionAxioms, hasKeyAxioms)));
                 });
 
                 server.setExecutor(null);

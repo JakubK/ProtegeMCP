@@ -20,16 +20,16 @@ public class ConceptTools
         Allows to create new Concept in current Ontology. Returns status string which informs if operation was successful.
         Example Payload:
         {
-            'conceptUri': 'http://www.example.org/animals#Mammal'
+            'uri': 'http://www.example.org/animals#Mammal'
         }
     ")]
     public static async Task<string> CreateConceptAsync(HttpClient client,
-        [Description("URI of the concept to be created. Example value: http://www.example.org/animals#Mammal")] string conceptUri
+        [Description("uri: URI of the concept to be created. Example value: http://www.example.org/animals#Mammal")] string uri
     )
     {
         var query = new Dictionary<string, string?>
         {
-            ["uri"] = conceptUri
+            ["uri"] = uri
         };
         var url = QueryHelpers.AddQueryString("/concepts", query);
         var response = await client.PostAsync(url, null);
@@ -46,8 +46,8 @@ public class ConceptTools
         }
     ")]
     public static async Task<string> RenameConceptAsync(HttpClient client,
-        [Description("URI of the Concept to be renamed. Example value: http://www.example.org/animals#Mammal")] string oldUri,
-        [Description("New URI of Concept. Example value: http://www.example.org/animals#Mammal")] string newUri
+        [Description("oldUri: URI of the Concept to be renamed. Example value: http://www.example.org/animals#Mammal")] string oldUri,
+        [Description("newUri: New URI of Concept. Example value: http://www.example.org/animals#Mammal")] string newUri
     )
     {
         var query = new Dictionary<string, string?>
@@ -69,12 +69,12 @@ public class ConceptTools
         }
     ")]
     public static async Task<string> DeleteConceptAsync(HttpClient client,
-        [Description("URI of the concept to be deleted. Example value: http://www.example.org/animals#Mammal")] string conceptUri
+        [Description("uri: URI of the concept to be deleted. Example value: http://www.example.org/animals#Mammal")] string uri
     )
     {
         var query = new Dictionary<string, string?>
         {
-            ["conceptUri"] = conceptUri,
+            ["uri"] = uri,
         };
         var url = QueryHelpers.AddQueryString("/delete-concept", query);
         var response = await client.DeleteAsync(url);
