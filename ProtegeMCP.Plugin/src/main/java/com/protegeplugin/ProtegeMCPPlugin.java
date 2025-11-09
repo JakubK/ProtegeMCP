@@ -59,6 +59,15 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 }
                 HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
+                server.createContext("/get-current-ontology", exchange -> {
+                    modelManager = getOWLModelManager();
+                    OWLOntology activeOntology = modelManager.getActiveOntology();
+                    OWLOntologyManager ontologyManager = modelManager.getOWLOntologyManager();
+                    var iri = ontologyManager.getOntologyDocumentIRI(activeOntology).toString();
+
+                    sendResponse(exchange, iri);
+                });
+
                 server.createContext("/rename-concept", exchange -> {
                     Map<String, String> qparams = parseQueryParams(exchange);
 
