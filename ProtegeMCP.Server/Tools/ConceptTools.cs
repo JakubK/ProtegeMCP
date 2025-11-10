@@ -80,28 +80,4 @@ public class ConceptTools
         var response = await client.DeleteAsync(url);
         return await response.Content.ReadAsStringAsync();
     }
-
-    [McpServerTool(Name = "subclass-concept")]
-    [Description(@"
-        Changes parent of given concept in current Ontology.
-        Both given concept URIs must already exist in the Ontology.
-        Example Payload:
-        {
-            'childUrl': 'http://www.example.org/animals#Mammal',
-            'parentUri': 'http://www.example.org/animals#Parent'
-        }
-    ")]
-    public static async Task<string> SubclassConceptAsync(HttpClient client,
-        [Description("URI of the child concept. Example value: http://www.example.org/animals#Mammal")] string childUri,
-        [Description("URI of the parent concept. When skipped, the owl:Thing will become a parent")] string? parentUri)
-    {
-        var query = new Dictionary<string, string?>
-        {
-            ["childUri"] = childUri,
-            ["parentUri"] = parentUri,
-        };
-        var url = QueryHelpers.AddQueryString("/subclass-concept", query);
-        var response = await client.PostAsync(url, null);
-        return await response.Content.ReadAsStringAsync();
-    }
 }

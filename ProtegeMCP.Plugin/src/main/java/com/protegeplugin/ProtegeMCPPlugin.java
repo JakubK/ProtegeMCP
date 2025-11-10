@@ -11,11 +11,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.function.Supplier;
 
 import com.google.gson.Gson;
 import org.protege.editor.owl.model.OWLModelManager;
 import org.protege.editor.owl.model.event.EventType;
 import org.protege.editor.owl.ui.action.ProtegeOWLAction;
+import org.semanticweb.owlapi.manchestersyntax.parser.ManchesterOWLSyntaxParserImpl;
 import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl;
 import org.semanticweb.owlapi.model.*;
 
@@ -24,6 +26,7 @@ import com.sun.net.httpserver.HttpServer;
 import org.semanticweb.owlapi.util.OWLEntityRenamer;
 import org.semanticweb.owlapi.util.ShortFormProvider;
 import org.semanticweb.owlapi.util.SimpleShortFormProvider;
+import org.semanticweb.owlapi.util.mansyntax.ManchesterOWLSyntaxParser;
 
 import javax.swing.*;
 
@@ -83,8 +86,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     List<OWLOntologyChange> changes = renamer.changeIRI(oldIRI, newIRI);
 
                     SwingUtilities.invokeLater(() -> {
-                        for(OWLOntologyChange change : changes)
-                        {
+                        for (OWLOntologyChange change : changes) {
                             modelManager.applyChange(change);
                         }
                         try {
@@ -96,8 +98,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/new", exchange -> {
-                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
-                    {
+                    if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                         OWLModelManager modelManager = getOWLModelManager();
                         OWLOntologyManager ontologyManager = modelManager.getOWLOntologyManager();
 
@@ -110,8 +111,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                         } catch (OWLOntologyCreationException e) {
                             throw new RuntimeException(e);
                         }
-                    }
-                    else {
+                    } else {
                         exchange.sendResponseHeaders(405, -1); // Method Not Allowed
                     }
                 });
@@ -144,8 +144,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     Map<String, String> qparams = parseQueryParams(exchange);
                     String path = qparams.get("path");
 
-                    if (path == null || path.trim().isEmpty())
-                    {
+                    if (path == null || path.trim().isEmpty()) {
                         try {
                             modelManager.save();
                             sendResponse(exchange, "Ontology saved successfully");
@@ -166,33 +165,6 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     }
                 });
 
-                server.createContext("/subclass-concept", exchange -> {
-                    modelManager = getOWLModelManager();
-                    OWLOntology activeOntology = modelManager.getActiveOntology();
-                    OWLDataFactory factory = modelManager.getOWLDataFactory();
-
-                    Map<String, String> qparams = parseQueryParams(exchange);
-                    OWLClass childClass = factory.getOWLClass(IRI.create(qparams.get("childUri")));
-                    OWLClass parentClass = factory.getOWLThing();
-
-                    String parentUri = qparams.get("parentUri");
-
-                    if(parentUri != null && !parentUri.trim().isEmpty()){
-                        parentClass = factory.getOWLClass(IRI.create(parentUri));
-                    }
-
-                    OWLSubClassOfAxiom subClassAxiom = factory.getOWLSubClassOfAxiom(childClass, parentClass);
-                    SwingUtilities.invokeLater(() -> {
-                        modelManager.applyChange(new AddAxiom(activeOntology, subClassAxiom));
-
-                        try {
-                            sendResponse(exchange, "Success");
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-                });
-
                 server.createContext("/delete-concept", exchange -> {
                     modelManager = getOWLModelManager();
                     OWLOntology activeOntology = modelManager.getActiveOntology();
@@ -204,8 +176,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
 
                     SwingUtilities.invokeLater(() -> {
 
-                        for(OWLAxiom x : referencingAxioms)
-                        {
+                        for (OWLAxiom x : referencingAxioms) {
                             modelManager.applyChange(new RemoveAxiom(activeOntology, x));
                         }
                         try {
@@ -225,9 +196,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                         Set<OWLClass> presentConcepts = activeOntology.getClassesInSignature();
                         String response = presentConcepts.toString();
                         sendResponse(exchange, response);
-                    }
-                    else if ("POST".equalsIgnoreCase(exchange.getRequestMethod()))
-                    {
+                    } else if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                         Map<String, String> qparams = parseQueryParams(exchange);
                         OWLClass childClass = factory.getOWLClass(IRI.create(qparams.get("uri")));
                         OWLDeclarationAxiom declaration = factory.getOWLDeclarationAxiom(childClass);
@@ -243,6 +212,62 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     }
                 });
 
+                server.createContext("/add-concept-axiom", exchange -> {
+                    modelManager = getOWLModelManager();
+                    OWLOntology activeOntology = modelManager.getActiveOntology();
+                    OWLDataFactory factory = modelManager.getOWLDataFactory();
+
+                    Map<String, String> qparams = parseQueryParams(exchange);
+                    var uri = qparams.get("uri");
+                    var axiomKind = qparams.get("axiomKind");
+                    var dlQuery = qparams.get("dlQuery");
+
+                    Supplier<OWLOntologyLoaderConfiguration> configSupplier = () -> activeOntology.getOWLOntologyManager().getOntologyLoaderConfiguration();
+
+                    ManchesterOWLSyntaxParser parser = new ManchesterOWLSyntaxParserImpl(configSupplier, factory);
+
+                    parser.setDefaultOntology(activeOntology);
+                    OWLClassExpression expr = parser.parseClassExpression(dlQuery);
+                    OWLClass owlClass = factory.getOWLClass(IRI.create(uri));
+
+
+                    OWLClassAxiom ax = null;
+                    switch (axiomKind) {
+                        case "equivalentClass":
+                            ax = factory.getOWLEquivalentClassesAxiom(owlClass, expr);
+                            break;
+                        case "subClass":
+                            System.out.println("before1");
+                            ax = factory.getOWLSubClassOfAxiom(owlClass, expr);
+                            System.out.println("after1");
+                            break;
+                        case "disjointClass":
+                            ax = factory.getOWLDisjointClassesAxiom(owlClass, expr);
+                            break;
+                        case "disjointUnionClass":
+                            Set<OWLClassExpression> disjointSet = new HashSet<>();
+                            disjointSet.add(expr);
+                            ax = factory.getOWLDisjointUnionAxiom(owlClass, disjointSet);
+                            break;
+                    }
+
+                    if (ax == null) {
+                        sendResponse(exchange, "Unknown axiomType: " + axiomKind);
+                        return;
+                    }
+
+                    OWLClassAxiom finalAx = ax;
+                    SwingUtilities.invokeLater(() -> {
+                        modelManager.applyChange(new AddAxiom(activeOntology, finalAx));
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                    sendResponse(exchange, "Success");
+                });
+
                 server.createContext("/list-concept-axioms", exchange -> {
                     OWLModelManager modelManager = getOWLModelManager();
                     OWLOntology activeOntology = modelManager.getActiveOntology();
@@ -250,7 +275,6 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
 
                     ShortFormProvider sfp = new SimpleShortFormProvider();
                     ManchesterOWLSyntaxOWLObjectRendererImpl renderer = new ManchesterOWLSyntaxOWLObjectRendererImpl();
-
                     renderer.setShortFormProvider(sfp);
 
                     Map<String, String> qparams = parseQueryParams(exchange);
@@ -316,9 +340,11 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
         }
     }
 
-    public void dispose() {}
+    public void dispose() {
+    }
 
-    public void actionPerformed(ActionEvent event) {}
+    public void actionPerformed(ActionEvent event) {
+    }
 
     private Map<String, String> parseQueryParams(HttpExchange exchange) {
         Map<String, String> result = new HashMap<>();
@@ -334,7 +360,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                         String value = URLDecoder.decode(kv[1], StandardCharsets.UTF_8);
                         result.put(key, value);
                     } catch (Exception e) {
-                        System.out.println( "Error decoding URL parameter" + e);
+                        System.out.println("Error decoding URL parameter" + e);
                     }
                 }
             }
