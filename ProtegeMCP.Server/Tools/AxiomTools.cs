@@ -22,19 +22,43 @@ public class AxiomTools
     }
 
     [McpServerTool(Name = "add-concept-axiom")]
-    [Description("Assign Axiom for concept using Descriptive Logic expression")]
+    [Description("""
+                 Assign Axiom to concept
+                 Concepts in expression should be mentioned via IRI's wrapped in <>
+    """)]
     public static async Task<string> AddConceptAxiom(HttpClient client, 
         [Description("uri: URI of the concept to add axiom to. Example value: http://www.example.org/animals#Mammal")] string uri,
         [Description("axiomKind: Kind of Axiom to be added. Allowed values are: ['equivalentClass', 'subClass', 'disjointClass', 'disjointUnionClass']")] string axiomKind,
-        [Description("dlQuery: Expression in Descriptive Logic for axiom to be made. Valid dlQuery can be just a className or query in descriptive logic without specifying again the information present in axiomKind")] string dlQuery)
+        [Description("classExpression: Class Expression of axiom to be added")] string classExpression)
     {
         var query = new Dictionary<string, string?>
         {
             ["uri"] = uri,
             ["axiomKind"] = axiomKind,
-            ["dlQuery"] = dlQuery
+            ["classExpression"] = classExpression
         };
         var url = QueryHelpers.AddQueryString("/add-concept-axiom", query);
+        var response = await client.PostAsync(url, null);
+        return await response.Content.ReadAsStringAsync();
+    }
+    
+    [McpServerTool(Name = "remove-concept-axiom")]
+    [Description("""
+                 Remove axiom from concept
+                 Concepts in expression should be mentioned via IRI's wrapped in <>
+    """)]
+    public static async Task<string> RemoveConceptAxiom(HttpClient client,
+        [Description("uri: URI of the concept to remove axiom from. Example value: http://www.example.org/animals#Mammal")] string uri,
+        [Description("axiomKind: Kind of Axiom to be removed. Allowed values are: ['equivalentClass', 'subClass', 'disjointClass', 'disjointUnionClass']")] string axiomKind,
+        [Description("axiom: Manchester OWL Syntax axiom to be removed")] string axiom)
+    {
+        var query = new Dictionary<string, string?>
+        {
+            ["uri"] = uri,
+            ["axiomKind"] = axiomKind,
+            ["axiom"] = axiom
+        };
+        var url = QueryHelpers.AddQueryString("/remove-concept-axiom", query);
         var response = await client.PostAsync(url, null);
         return await response.Content.ReadAsStringAsync();
     }

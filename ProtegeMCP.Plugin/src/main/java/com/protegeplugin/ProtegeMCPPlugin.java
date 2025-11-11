@@ -212,6 +212,64 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     }
                 });
 
+                server.createContext("/remove-concept-axiom", exchange -> {
+                    try {
+
+                        modelManager = getOWLModelManager();
+                        OWLOntology activeOntology = modelManager.getActiveOntology();
+                        OWLDataFactory factory = modelManager.getOWLDataFactory();
+
+                        Map<String, String> qparams = parseQueryParams(exchange);
+                        var uri = qparams.get("uri");
+                        var axiomKind = qparams.get("axiomKind");
+                        var axiom = qparams.get("axiom");
+
+                        Supplier<OWLOntologyLoaderConfiguration> configSupplier = () -> activeOntology.getOWLOntologyManager().getOntologyLoaderConfiguration();
+
+                        ManchesterOWLSyntaxParser parser = new ManchesterOWLSyntaxParserImpl(configSupplier, factory);
+
+                        parser.setDefaultOntology(activeOntology);
+                        OWLClassExpression expr = parser.parseClassExpression(axiom);
+                        OWLClass owlClass = factory.getOWLClass(IRI.create(uri));
+
+
+                        OWLClassAxiom ax = null;
+                        switch (axiomKind) {
+                            case "equivalentClass":
+                                ax = factory.getOWLEquivalentClassesAxiom(owlClass, expr);
+                                break;
+                            case "subClass":
+                                ax = factory.getOWLSubClassOfAxiom(owlClass, expr);
+                                break;
+                            case "disjointClass":
+                                ax = factory.getOWLDisjointClassesAxiom(owlClass, expr);
+                                break;
+                            case "disjointUnionClass":
+                                Set<OWLClassExpression> disjointSet = new HashSet<>();
+                                disjointSet.add(expr);
+                                ax = factory.getOWLDisjointUnionAxiom(owlClass, disjointSet);
+                                break;
+                        }
+
+                        if (ax == null) {
+                            sendResponse(exchange, "Unknown axiomType: " + axiomKind);
+                            return;
+                        }
+
+                        OWLClassAxiom finalAx = ax;
+                        SwingUtilities.invokeLater(() -> {
+                            modelManager.applyChange(new RemoveAxiom(activeOntology, finalAx));
+                            try {
+                                sendResponse(exchange, "Success");
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                    } catch (Exception ex) {
+                        sendResponse(exchange, ex.toString());
+                    }
+                });
+
                 server.createContext("/add-concept-axiom", exchange -> {
                     modelManager = getOWLModelManager();
                     OWLOntology activeOntology = modelManager.getActiveOntology();
@@ -220,14 +278,14 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     Map<String, String> qparams = parseQueryParams(exchange);
                     var uri = qparams.get("uri");
                     var axiomKind = qparams.get("axiomKind");
-                    var dlQuery = qparams.get("dlQuery");
+                    var classExpression = qparams.get("classExpression");
 
                     Supplier<OWLOntologyLoaderConfiguration> configSupplier = () -> activeOntology.getOWLOntologyManager().getOntologyLoaderConfiguration();
 
                     ManchesterOWLSyntaxParser parser = new ManchesterOWLSyntaxParserImpl(configSupplier, factory);
 
                     parser.setDefaultOntology(activeOntology);
-                    OWLClassExpression expr = parser.parseClassExpression(dlQuery);
+                    OWLClassExpression expr = parser.parseClassExpression(classExpression);
                     OWLClass owlClass = factory.getOWLClass(IRI.create(uri));
 
 
@@ -237,9 +295,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                             ax = factory.getOWLEquivalentClassesAxiom(owlClass, expr);
                             break;
                         case "subClass":
-                            System.out.println("before1");
                             ax = factory.getOWLSubClassOfAxiom(owlClass, expr);
-                            System.out.println("after1");
                             break;
                         case "disjointClass":
                             ax = factory.getOWLDisjointClassesAxiom(owlClass, expr);
@@ -265,7 +321,6 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                             throw new RuntimeException(e);
                         }
                     });
-                    sendResponse(exchange, "Success");
                 });
 
                 server.createContext("/list-concept-axioms", exchange -> {
