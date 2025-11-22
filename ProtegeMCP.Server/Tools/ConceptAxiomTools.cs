@@ -5,11 +5,11 @@ using ModelContextProtocol.Server;
 namespace ProtegeMCP.Server.Tools;
 
 [McpServerToolType, Description("Tools for CRUD operations on Axioms of Concepts")]
-public class AxiomTools
+public class ConceptAxiomTools
 {
     [McpServerTool(Name = "list-concept-axioms")]
     [Description("List all axioms organized by category for given Concept in current Ontology")]
-    public static async Task<string> ListConceptsAsync(HttpClient client,
+    public static async Task<string> ListConceptAxioms(HttpClient client,
         [Description("uri: URI of the concept to list its axioms. Example value: http://www.example.org/animals#Mammal")] string uri)
     {
         var query = new Dictionary<string, string?>
@@ -23,8 +23,8 @@ public class AxiomTools
 
     [McpServerTool(Name = "add-concept-axiom")]
     [Description("""
-                 Assign Axiom to concept
-                 Concepts in expression should be mentioned via IRI's wrapped in <>
+         Assign Axiom to concept
+         Concepts or Object Properties in expression should be mentioned via IRI's wrapped in <>
     """)]
     public static async Task<string> AddConceptAxiom(HttpClient client, 
         [Description("uri: URI of the concept to add axiom to. Example value: http://www.example.org/animals#Mammal")] string uri,
@@ -44,8 +44,8 @@ public class AxiomTools
     
     [McpServerTool(Name = "remove-concept-axiom")]
     [Description("""
-                 Remove axiom from concept
-                 Concepts in expression should be mentioned via IRI's wrapped in <>
+         Remove axiom from concept
+         Concepts in expression should be mentioned via IRI's wrapped in <>
     """)]
     public static async Task<string> RemoveConceptAxiom(HttpClient client,
         [Description("uri: URI of the concept to remove axiom from. Example value: http://www.example.org/animals#Mammal")] string uri,

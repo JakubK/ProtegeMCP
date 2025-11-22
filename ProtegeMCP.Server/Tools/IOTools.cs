@@ -9,7 +9,7 @@ public class IOTools
 {
     [McpServerTool(Name = "get-current-ontology")]
     [Description("Returns information about what is the current Ontology")]
-    public static async Task<string> GetCurrentOntologyAsync(HttpClient client)
+    public static async Task<string> GetCurrentOntology(HttpClient client)
     {
         var response = await client.GetAsync("/get-current-ontology");
         return await response.Content.ReadAsStringAsync();
@@ -17,7 +17,7 @@ public class IOTools
     
     [McpServerTool(Name = "new-ontology")]
     [Description("Creates new blank ontology and switches workspace to it")]
-    public static async Task<string> NewOntologyAsync(HttpClient client)
+    public static async Task<string> NewOntology(HttpClient client)
     {
         var response = await client.PostAsync("/new", null);
         return await response.Content.ReadAsStringAsync();
@@ -32,7 +32,7 @@ public class IOTools
         }
         "
     )]
-    public static async Task<string> OpenOntologyAsync(HttpClient client, 
+    public static async Task<string> OpenOntology(HttpClient client, 
         [Description("path: Required path to file with ontology")] string path)
     {
         var query = new Dictionary<string, string?>
@@ -52,7 +52,7 @@ public class IOTools
            'path': '/home/user/ontology.owx'
         }
     ")]
-    public static async Task<string> SaveAsOntologyAsync(HttpClient client,
+    public static async Task<string> SaveAsOntology(HttpClient client,
         [Description("path: Location on the file system specifying where to save ontology. If left empty, it will assume that the currently opened ontology is already associated with a file")] string? path)
     {
         var query = new Dictionary<string, string?>

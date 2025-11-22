@@ -9,7 +9,7 @@ public class ConceptTools
 {
     [McpServerTool(Name = "list-concepts")]
     [Description("List all Concepts present in current Ontology")]
-    public static async Task<string> ListConceptsAsync(HttpClient client)
+    public static async Task<string> ListConcepts(HttpClient client)
     {
         var response = await client.GetAsync("/concepts");
         return await response.Content.ReadAsStringAsync();
@@ -23,7 +23,7 @@ public class ConceptTools
             'uri': 'http://www.example.org/animals#Mammal'
         }
     ")]
-    public static async Task<string> CreateConceptAsync(HttpClient client,
+    public static async Task<string> CreateConcept(HttpClient client,
         [Description("uri: URI of the concept to be created. Example value: http://www.example.org/animals#Mammal")] string uri
     )
     {
@@ -45,7 +45,7 @@ public class ConceptTools
             'newName': 'http://www.example.org/animals#SomethingElse'
         }
     ")]
-    public static async Task<string> RenameConceptAsync(HttpClient client,
+    public static async Task<string> RenameConcept(HttpClient client,
         [Description("oldUri: URI of the Concept to be renamed. Example value: http://www.example.org/animals#Mammal")] string oldUri,
         [Description("newUri: New URI of Concept. Example value: http://www.example.org/animals#Mammal")] string newUri
     )
@@ -68,7 +68,7 @@ public class ConceptTools
             'conceptUri': 'http://www.example.org/animals#Mammal'
         }
     ")]
-    public static async Task<string> DeleteConceptAsync(HttpClient client,
+    public static async Task<string> DeleteConcept(HttpClient client,
         [Description("uri: URI of the concept to be deleted. Example value: http://www.example.org/animals#Mammal")] string uri
     )
     {

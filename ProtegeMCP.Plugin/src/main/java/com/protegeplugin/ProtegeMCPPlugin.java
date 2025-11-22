@@ -368,6 +368,276 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     sendResponse(exchange, new Gson().toJson(new ListConceptAxiomsResponse(eqAxioms, subAxioms, disjointAxioms, disjointUnionAxioms, hasKeyAxioms)));
                 });
 
+                server.createContext("/create-object-property", exchange -> {
+                    var modelManager = getOWLModelManager();
+                    var activeOntology = modelManager.getActiveOntology();
+                    var factory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+                    var uri = qparams.get("uri");
+
+                    var propertyIRI = IRI.create(uri);
+
+                    var hasParent = factory.getOWLObjectProperty(propertyIRI);
+                    var declarationAxiom = factory.getOWLDeclarationAxiom(hasParent);
+
+                    SwingUtilities.invokeLater(() -> {
+                        modelManager.applyChange(new AddAxiom(activeOntology, declarationAxiom));
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/list-object-properties", exchange -> {
+                    var modelManager = getOWLModelManager();
+                    var activeOntology = modelManager.getActiveOntology();
+
+                    Set<OWLObjectProperty> properties = activeOntology.getObjectPropertiesInSignature();
+
+                    var response = properties.stream().map(x -> {
+                        var functional = !activeOntology.getFunctionalObjectPropertyAxioms(x).isEmpty();
+                        var inverseFunctional = !activeOntology.getInverseFunctionalObjectPropertyAxioms(x).isEmpty();
+                        var transitive = !activeOntology.getTransitiveObjectPropertyAxioms(x).isEmpty();
+                        var symmetric = !activeOntology.getSymmetricObjectPropertyAxioms(x).isEmpty();
+                        var asymmetric = !activeOntology.getAsymmetricObjectPropertyAxioms(x).isEmpty();
+                        var reflexive = !activeOntology.getReflexiveObjectPropertyAxioms(x).isEmpty();
+                        var irreflexive = !activeOntology.getIrreflexiveObjectPropertyAxioms(x).isEmpty();
+
+                        return new ObjectPropertyWithCharacteristics(x, functional, inverseFunctional, transitive, symmetric, asymmetric, reflexive, irreflexive);
+                    }).toString();
+
+                    sendResponse(exchange, response);
+                });
+
+                server.createContext("/rename-object-property", exchange -> {
+                    var modelManager = getOWLModelManager();
+                    var factory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+                    var oldUri = IRI.create(qparams.get("oldUri"));
+                    var newUri = IRI.create(qparams.get("newUri"));
+
+                    var property = factory.getOWLObjectProperty(oldUri);
+                    var renamer = new OWLEntityRenamer(modelManager.getOWLOntologyManager(), modelManager.getOntologies());
+                    var changes = renamer.changeIRI(property, newUri);
+
+                    SwingUtilities.invokeLater(() -> {
+                        modelManager.applyChanges(changes);
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/delete-object-property", exchange -> {
+                    var modelManager = getOWLModelManager();
+                    var activeOntology = modelManager.getActiveOntology();
+                    var factory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+                    var uri = qparams.get("uri");
+
+                    var propertyIRI = IRI.create(uri);
+
+                    var hasParent = factory.getOWLObjectProperty(propertyIRI);
+                    var declarationAxiom = factory.getOWLDeclarationAxiom(hasParent);
+
+                    SwingUtilities.invokeLater(() -> {
+                        modelManager.applyChange(new RemoveAxiom(activeOntology, declarationAxiom));
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/set-object-property-characteristics", exchange -> {
+                    var modelManager = getOWLModelManager();
+                    var activeOntology = modelManager.getActiveOntology();
+                    var factory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+                    var uri = IRI.create(qparams.get("uri"));
+                    var prop = factory.getOWLObjectProperty(
+                            uri);
+
+                    var functional = qparams.get("functional");
+                    var inverseFunctional = qparams.get("inverseFunctional");
+                    var transitive = qparams.get("transitive");
+                    var symmetric = qparams.get("symmetric");
+                    var asymmetric = qparams.get("asymmetric");
+                    var reflexive = qparams.get("reflexive");
+                    var irreflexive = qparams.get("irreflexive");
+
+                    var changes = new ArrayList<OWLOntologyChange>();
+
+                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLFunctionalObjectPropertyAxiom(prop), functional);
+                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLInverseFunctionalObjectPropertyAxiom(prop), inverseFunctional);
+                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLTransitiveObjectPropertyAxiom(prop), transitive);
+                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLSymmetricObjectPropertyAxiom(prop), symmetric);
+                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLAsymmetricObjectPropertyAxiom(prop), asymmetric);
+                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLReflexiveObjectPropertyAxiom(prop), reflexive);
+                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLIrreflexiveObjectPropertyAxiom(prop), irreflexive);
+
+                    var finalChanges = changes;
+
+                    SwingUtilities.invokeLater(() -> {
+                        modelManager.applyChanges(finalChanges);
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/list-object-property-axioms", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var df = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+                    var uri = IRI.create(qparams.get("uri"));
+                    var prop = df.getOWLObjectProperty(uri);
+
+                    var axioms = ontology.getAxioms(prop);
+                    var response = axioms.toString();
+                    sendResponse(exchange, response);
+                });
+
+                server.createContext("/add-object-property-axiom", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var df = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+                    var uri = IRI.create(qparams.get("uri"));
+                    var axiomKind = qparams.get("axiomKind");
+                    var classExpression = qparams.get("classExpression");
+
+                    Supplier<OWLOntologyLoaderConfiguration> configSupplier = () -> ontology.getOWLOntologyManager().getOntologyLoaderConfiguration();
+
+                    ManchesterOWLSyntaxParser parser = new ManchesterOWLSyntaxParserImpl(configSupplier, df);
+
+                    parser.setDefaultOntology(ontology);
+                    OWLClassExpression expr = parser.parseClassExpression(classExpression);
+                    var prop = df.getOWLObjectProperty(uri);
+
+                    OWLObjectPropertyAxiom ax = null;
+                    switch (axiomKind) {
+                        case "equivalentTo":
+                            OWLObjectProperty eqProp = df.getOWLObjectProperty(IRI.create(classExpression));
+                            ax = df.getOWLEquivalentObjectPropertiesAxiom(prop, eqProp);
+                            break;
+                        case "subPropertyOf":
+                            OWLObjectProperty superProp = df.getOWLObjectProperty(IRI.create(classExpression));
+                            ax = df.getOWLSubObjectPropertyOfAxiom(prop, superProp);
+                            break;
+                        case "inverseOf":
+                            OWLObjectProperty inverseProp = df.getOWLObjectProperty(IRI.create(classExpression));
+                            ax = df.getOWLInverseObjectPropertiesAxiom(prop, inverseProp);
+                            break;
+                        case "domains":
+                            ax = df.getOWLObjectPropertyDomainAxiom(prop, expr);
+                            break;
+                        case "ranges":
+                            ax = df.getOWLObjectPropertyRangeAxiom(prop, expr);
+                            break;
+                        case "disjointWith":
+                            OWLObjectProperty disjointProp = df.getOWLObjectProperty(IRI.create(classExpression));
+                            ax = df.getOWLDisjointObjectPropertiesAxiom(prop, disjointProp);
+                            break;
+                        case "superPropertyOf":
+                            OWLObjectProperty subProp = df.getOWLObjectProperty(IRI.create(classExpression));
+                            ax = df.getOWLSubObjectPropertyOfAxiom(subProp, prop);
+                            break;
+                    }
+
+                    if (ax == null) {
+                        sendResponse(exchange, "Unknown axiomType: " + axiomKind);
+                        return;
+                    }
+
+                    var finalAx = ax;
+
+                    SwingUtilities.invokeLater(() -> {
+                        ontology.getOWLOntologyManager().applyChange(new AddAxiom(ontology, finalAx));
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/delete-object-property-axiom", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var df = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+                    var uri = IRI.create(qparams.get("uri"));
+                    var axiomKind = qparams.get("axiomKind");
+                    var classExpression = qparams.get("classExpression");
+
+                    Supplier<OWLOntologyLoaderConfiguration> configSupplier = () -> ontology.getOWLOntologyManager().getOntologyLoaderConfiguration();
+
+                    ManchesterOWLSyntaxParser parser = new ManchesterOWLSyntaxParserImpl(configSupplier, df);
+
+                    parser.setDefaultOntology(ontology);
+                    OWLClassExpression expr = parser.parseClassExpression(classExpression);
+                    var prop = df.getOWLObjectProperty(uri);
+
+                    OWLObjectPropertyAxiom ax = null;
+                    switch (axiomKind) {
+                        case "equivalentTo":
+                            OWLObjectProperty eqProp = df.getOWLObjectProperty(IRI.create(classExpression));
+                            ax = df.getOWLEquivalentObjectPropertiesAxiom(prop, eqProp);
+                            break;
+                        case "subPropertyOf":
+                            OWLObjectProperty superProp = df.getOWLObjectProperty(IRI.create(classExpression));
+                            ax = df.getOWLSubObjectPropertyOfAxiom(prop, superProp);
+                            break;
+                        case "inverseOf":
+                            OWLObjectProperty inverseProp = df.getOWLObjectProperty(IRI.create(classExpression));
+                            ax = df.getOWLInverseObjectPropertiesAxiom(prop, inverseProp);
+                            break;
+                        case "domains":
+                            ax = df.getOWLObjectPropertyDomainAxiom(prop, expr);
+                            break;
+                        case "ranges":
+                            ax = df.getOWLObjectPropertyRangeAxiom(prop, expr);
+                            break;
+                        case "disjointWith":
+                            OWLObjectProperty disjointProp = df.getOWLObjectProperty(IRI.create(classExpression));
+                            ax = df.getOWLDisjointObjectPropertiesAxiom(prop, disjointProp);
+                            break;
+                        case "superPropertyOf":
+                            OWLObjectProperty subProp = df.getOWLObjectProperty(IRI.create(classExpression));
+                            ax = df.getOWLSubObjectPropertyOfAxiom(subProp, prop);
+                            break;
+                    }
+
+                    if (ax == null) {
+                        sendResponse(exchange, "Unknown axiomType: " + axiomKind);
+                        return;
+                    }
+
+                    var finalAx = ax;
+
+                    SwingUtilities.invokeLater(() -> {
+                        ontology.getOWLOntologyManager().applyChange(new RemoveAxiom(ontology, finalAx));
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
                 server.setExecutor(null);
                 server.start();
                 System.out.println("✅ Server running at http://localhost:" + port);
@@ -386,6 +656,16 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
         mcpThread.start();
     }
 
+    private ArrayList<OWLOntologyChange> ProcessCharacteristicChange(ArrayList<OWLOntologyChange> changes, OWLOntology activeOntology, OWLAxiom ax, String value)
+    {
+        if (value.equals("true"))
+            changes.add(new AddAxiom(activeOntology, ax));
+        else if(value.equals("false"))
+            changes.add(new RemoveAxiom(activeOntology, ax));
+
+        return changes;
+    }
+
     private void sendResponse(HttpExchange exchange, String response) throws IOException {
         byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=utf-8");
@@ -394,6 +674,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
             os.write(bytes);
         }
     }
+
 
     public void dispose() {
     }

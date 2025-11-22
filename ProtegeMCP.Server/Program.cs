@@ -1,6 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using ProtegeMCP.Server.Tools;
 
@@ -9,7 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMcpServer()
     .WithTools<ConceptTools>()
     .WithTools<IOTools>()
-    .WithTools<AxiomTools>()
+    .WithTools<ConceptAxiomTools>()
+    .WithTools<ObjectPropertiesTools>()
+    .WithTools<ObjectPropertyAxiomTools>()
     .WithStdioServerTransport()
     .WithHttpTransport();
 
