@@ -47,7 +47,7 @@ public class ObjectPropertiesTools
     ")]
     public static async Task<string> RenameObjectProperty(HttpClient client,
         [Description("oldUri: URI of the Object Property to be renamed. Example value: http://www.example.org/animals#Mammal")] string oldUri,
-        [Description("newUri: New URI of Object Property. Example value: http://www.example.org/animals#Mammal")] string newUri
+        [Description("newUri: New URI of Object Property. Example value: http://www.example.org/animals#SomethingElse")] string newUri
     )
     {
         var query = new Dictionary<string, string?>

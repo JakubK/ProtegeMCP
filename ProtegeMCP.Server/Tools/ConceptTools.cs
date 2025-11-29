@@ -47,7 +47,7 @@ public class ConceptTools
     ")]
     public static async Task<string> RenameConcept(HttpClient client,
         [Description("oldUri: URI of the Concept to be renamed. Example value: http://www.example.org/animals#Mammal")] string oldUri,
-        [Description("newUri: New URI of Concept. Example value: http://www.example.org/animals#Mammal")] string newUri
+        [Description("newUri: New URI of Concept. Example value: http://www.example.org/animals#SomethingElse")] string newUri
     )
     {
         var query = new Dictionary<string, string?>

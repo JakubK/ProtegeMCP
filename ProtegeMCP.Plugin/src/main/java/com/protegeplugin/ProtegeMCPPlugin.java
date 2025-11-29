@@ -638,6 +638,112 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     });
                 });
 
+                server.createContext("/create-individual", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var df = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+                    var uri = IRI.create(qparams.get("uri"));
+                    var individual = df.getOWLNamedIndividual(uri);
+
+                    var individualDeclaration = df.getOWLDeclarationAxiom(individual);
+
+                    SwingUtilities.invokeLater(() -> {
+                        ontology.getOWLOntologyManager().applyChange(new AddAxiom(ontology, individualDeclaration));
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/delete-individual", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var df = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+                    var uri = IRI.create(qparams.get("uri"));
+                    var individual = df.getOWLNamedIndividual(uri);
+
+                    var individualDeclaration = df.getOWLDeclarationAxiom(individual);
+
+                    SwingUtilities.invokeLater(() -> {
+                        ontology.getOWLOntologyManager().applyChange(new RemoveAxiom(ontology, individualDeclaration));
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/rename-individual", exchange -> {
+                    var qparams = parseQueryParams(exchange);
+
+                    var oldIRI = IRI.create(qparams.get("oldUri"));
+                    var newIRI = IRI.create(qparams.get("newUri"));
+
+                    var renamer = new OWLEntityRenamer(
+                            modelManager.getOWLOntologyManager(),
+                            modelManager.getOntologies()
+                    );
+                    var changes = renamer.changeIRI(oldIRI, newIRI);
+
+                    SwingUtilities.invokeLater(() -> {
+                        for (OWLOntologyChange change : changes) {
+                            modelManager.applyChange(change);
+                        }
+                        try {
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/list-individuals", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+
+                    var individuals = new ArrayList<IndividualDetails>();
+
+                    for (OWLNamedIndividual ind : ontology.getIndividualsInSignature()) {
+                        var types = new ArrayList<String>();
+                        ontology.getClassAssertionAxioms(ind).forEach(ax -> types.add(ax.getClassExpression().toString()));
+
+                        var sameIndividuals = new ArrayList<String>();
+                        ontology.getSameIndividualAxioms(ind).forEach(ax ->
+                                ax.getIndividuals().stream()
+                                        .filter(i -> !i.equals(ind))
+                                        .forEach(i -> sameIndividuals.add(i.toString())));
+
+                        var differentIndividuals = new ArrayList<String>();
+                        ontology.getDifferentIndividualAxioms(ind).forEach(ax ->
+                                ax.getIndividuals().stream()
+                                        .filter(i -> !i.equals(ind))
+                                        .forEach(i -> differentIndividuals.add(i.toString())));
+
+                        var objectPropertyAssertions = new ArrayList<String>();
+                        ontology.getObjectPropertyAssertionAxioms(ind).forEach(ax -> {
+                            OWLObjectPropertyExpression prop = ax.getProperty();
+                            OWLIndividual object = ax.getObject();
+                            objectPropertyAssertions.add("  - " + prop + " -> " + object);
+                        });
+
+                        var negativeObjectPropertyAssertions = new ArrayList<String>();
+                        ontology.getNegativeObjectPropertyAssertionAxioms(ind).forEach(ax -> {
+                            OWLObjectPropertyExpression prop = ax.getProperty();
+                            OWLIndividual object = ax.getObject();
+                            negativeObjectPropertyAssertions.add("  - " + prop + " -> " + object);
+                        });
+
+                        individuals.add(new IndividualDetails(ind.getIRI().toString(), types, sameIndividuals, differentIndividuals, objectPropertyAssertions, negativeObjectPropertyAssertions));
+                    }
+
+                    sendResponse(exchange, new Gson().toJson(individuals));
+                });
+
+
                 server.setExecutor(null);
                 server.start();
                 System.out.println("✅ Server running at http://localhost:" + port);

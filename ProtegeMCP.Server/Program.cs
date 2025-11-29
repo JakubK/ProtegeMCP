@@ -10,6 +10,7 @@ builder.Services.AddMcpServer()
     .WithTools<ConceptAxiomTools>()
     .WithTools<ObjectPropertiesTools>()
     .WithTools<ObjectPropertyAxiomTools>()
+    .WithTools<IndividualTools>()
     .WithStdioServerTransport()
     .WithHttpTransport();
 
