@@ -11,6 +11,7 @@ builder.Services.AddMcpServer()
     .WithTools<ObjectPropertiesTools>()
     .WithTools<ObjectPropertyAxiomTools>()
     .WithTools<IndividualTools>()
+    .WithTools<IndividualPropertiesTools>()
     .WithStdioServerTransport()
     .WithHttpTransport();
 

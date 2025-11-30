@@ -743,6 +743,243 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     sendResponse(exchange, new Gson().toJson(individuals));
                 });
 
+                server.createContext("/assign-type", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var dataFactory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+
+                    var individualIRI = IRI.create(qparams.get("individualUri"));
+                    var typeIRI = IRI.create(qparams.get("typeUri"));
+
+                    var individual = dataFactory.getOWLNamedIndividual(individualIRI);
+                    var cls = dataFactory.getOWLClass(typeIRI);
+
+                    var axiom = dataFactory.getOWLClassAssertionAxiom(cls, individual);
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            modelManager.applyChange(new AddAxiom(ontology, axiom));
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/remove-assign-type", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var dataFactory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+
+                    var individualIRI = IRI.create(qparams.get("individualUri"));
+                    var typeIRI = IRI.create(qparams.get("typeUri"));
+
+                    var individual = dataFactory.getOWLNamedIndividual(individualIRI);
+                    var cls = dataFactory.getOWLClass(typeIRI);
+
+                    var axiom = dataFactory.getOWLClassAssertionAxiom(cls, individual);
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            modelManager.applyChange(new RemoveAxiom(ontology, axiom));
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/assign-same-individual", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var dataFactory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+
+                    var individualIRI = IRI.create(qparams.get("individualUri"));
+                    var sameIndividualIRI = IRI.create(qparams.get("sameIndividualUri"));
+
+                    var individual = dataFactory.getOWLNamedIndividual(individualIRI);
+                    var same = dataFactory.getOWLNamedIndividual(sameIndividualIRI);
+
+                    var sameAxiom = dataFactory.getOWLSameIndividualAxiom(individual, same);
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            modelManager.applyChange(new AddAxiom(ontology, sameAxiom));
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/remove-assign-same-individual", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var dataFactory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+
+                    var individualIRI = IRI.create(qparams.get("individualUri"));
+                    var sameIndividualIRI = IRI.create(qparams.get("sameIndividualUri"));
+
+                    var individual = dataFactory.getOWLNamedIndividual(individualIRI);
+                    var same = dataFactory.getOWLNamedIndividual(sameIndividualIRI);
+
+                    var sameAxiom = dataFactory.getOWLSameIndividualAxiom(individual, same);
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            modelManager.applyChange(new RemoveAxiom(ontology, sameAxiom));
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/assign-different-individual", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var dataFactory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+
+                    var individualIRI = IRI.create(qparams.get("individualUri"));
+                    var diffrentIRI = IRI.create(qparams.get("differentIndividualUri"));
+
+                    var individual = dataFactory.getOWLNamedIndividual(individualIRI);
+                    var different = dataFactory.getOWLNamedIndividual(diffrentIRI);
+
+                    var differentAxiom = dataFactory.getOWLDifferentIndividualsAxiom(individual, different);
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            modelManager.applyChange(new AddAxiom(ontology, differentAxiom));
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/remove-assign-different-individual", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var dataFactory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+
+                    var individualIRI = IRI.create(qparams.get("individualUri"));
+                    var diffrentIRI = IRI.create(qparams.get("differentIndividualUri"));
+
+                    var individual = dataFactory.getOWLNamedIndividual(individualIRI);
+                    var different = dataFactory.getOWLNamedIndividual(diffrentIRI);
+
+                    var differentAxiom = dataFactory.getOWLDifferentIndividualsAxiom(individual, different);
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            modelManager.applyChange(new RemoveAxiom(ontology, differentAxiom));
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/assign-object-property-assertion", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var dataFactory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+
+                    var individualIRI = IRI.create(qparams.get("individualUri"));
+                    var objectPropertyIRI = IRI.create(qparams.get("objectPropertyUri"));
+                    var secondIndividualIRI = IRI.create(qparams.get("secondIndividualUri"));
+
+                    var individual = dataFactory.getOWLNamedIndividual(individualIRI);
+                    var objectProperty = dataFactory.getOWLObjectProperty(objectPropertyIRI);
+                    var second = dataFactory.getOWLNamedIndividual(secondIndividualIRI);
+
+                    var axiom = dataFactory.getOWLObjectPropertyAssertionAxiom(objectProperty, individual, second);
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            modelManager.applyChange(new AddAxiom(ontology, axiom));
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/remove-assign-object-property-assertion", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var dataFactory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+
+                    var individualIRI = IRI.create(qparams.get("individualUri"));
+                    var objectPropertyIRI = IRI.create(qparams.get("objectPropertyUri"));
+                    var secondIndividualIRI = IRI.create(qparams.get("secondIndividualUri"));
+
+                    var individual = dataFactory.getOWLNamedIndividual(individualIRI);
+                    var objectProperty = dataFactory.getOWLObjectProperty(objectPropertyIRI);
+                    var second = dataFactory.getOWLNamedIndividual(secondIndividualIRI);
+
+                    var axiom = dataFactory.getOWLObjectPropertyAssertionAxiom(objectProperty, individual, second);
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            modelManager.applyChange(new RemoveAxiom(ontology, axiom));
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/assign-negative-object-property-assertion", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var dataFactory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+
+                    var individualIRI = IRI.create(qparams.get("individualUri"));
+                    var objectPropertyIRI = IRI.create(qparams.get("objectPropertyUri"));
+                    var secondIndividualIRI = IRI.create(qparams.get("secondIndividualUri"));
+
+                    var individual = dataFactory.getOWLNamedIndividual(individualIRI);
+                    var objectProperty = dataFactory.getOWLObjectProperty(objectPropertyIRI);
+                    var second = dataFactory.getOWLNamedIndividual(secondIndividualIRI);
+
+                    var axiom = dataFactory.getOWLNegativeObjectPropertyAssertionAxiom(objectProperty, individual, second);
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            modelManager.applyChange(new AddAxiom(ontology, axiom));
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+
+                server.createContext("/remove-assign-negative-object-property-assertion", exchange -> {
+                    var ontology = modelManager.getActiveOntology();
+                    var dataFactory = modelManager.getOWLDataFactory();
+
+                    var qparams = parseQueryParams(exchange);
+
+                    var individualIRI = IRI.create(qparams.get("individualUri"));
+                    var objectPropertyIRI = IRI.create(qparams.get("objectPropertyUri"));
+                    var secondIndividualIRI = IRI.create(qparams.get("secondIndividualUri"));
+
+                    var individual = dataFactory.getOWLNamedIndividual(individualIRI);
+                    var objectProperty = dataFactory.getOWLObjectProperty(objectPropertyIRI);
+                    var second = dataFactory.getOWLNamedIndividual(secondIndividualIRI);
+
+                    var axiom = dataFactory.getOWLNegativeObjectPropertyAssertionAxiom(objectProperty, individual, second);
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            modelManager.applyChange(new RemoveAxiom(ontology, axiom));
+                            sendResponse(exchange, "Success");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
 
                 server.setExecutor(null);
                 server.start();
