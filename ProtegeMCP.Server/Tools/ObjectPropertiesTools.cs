@@ -7,6 +7,14 @@ namespace ProtegeMCP.Server.Tools;
 [McpServerToolType, Description("Tools for CRUD operations on Object Properties")]
 public class ObjectPropertiesTools
 {
+    [McpServerTool(Name = "list-object-properties")]
+    [Description("List all Object Properties present in current Ontology")]
+    public static async Task<string> ListObjectProperties(HttpClient client)
+    {
+        var response = await client.GetAsync("/list-object-properties");
+        return await response.Content.ReadAsStringAsync();
+    }
+    
     [McpServerTool(Name = "create-object-property")]
     [Description(@"
         Allows to create new Object Property in current Ontology. Returns status string which informs if operation was successful.
@@ -25,14 +33,6 @@ public class ObjectPropertiesTools
         };
         var url = QueryHelpers.AddQueryString("/create-object-property", query);
         var response = await client.PostAsync(url, null);
-        return await response.Content.ReadAsStringAsync();
-    }
-    
-    [McpServerTool(Name = "list-object-properties")]
-    [Description("List all Object Properties present in current Ontology")]
-    public static async Task<string> ListObjectProperties(HttpClient client)
-    {
-        var response = await client.GetAsync("/list-object-properties");
         return await response.Content.ReadAsStringAsync();
     }
     
