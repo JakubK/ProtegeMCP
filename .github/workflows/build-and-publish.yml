@@ -58,8 +58,7 @@ jobs:
       run: |
         gh release create "${{ inputs.tag }}" \
             ./ProtegeMCP.Plugin/target/*.jar \
-            --title "${{ inputs.tag }}" \
-            --verify-tag
+            --title "${{ inputs.tag }}"
       env:
         GITHUB_TOKEN: ${{ github.token }}
 
