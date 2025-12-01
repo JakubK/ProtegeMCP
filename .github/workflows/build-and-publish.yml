@@ -18,7 +18,7 @@ jobs:
     - name: Setup .NET 9 SDK
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Restore dependencies
       run: dotnet restore
@@ -54,16 +54,14 @@ jobs:
         name: ProtegeMCP.Plugin
         path: ./ProtegeMCP.Plugin/target/*.jar
 
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      with:
-        tag_name: ${{ inputs.tag }}
-        release_name: ${{ inputs.tag }}
-        draft: false
-        prerelease: false
+    - name: Create Release
+      run: |
+        gh release create "${{ inputs.tag }}" \
+            ./ProtegeMCP.Plugin/target/*.jar \
+            --title "${{ inputs.tag }}" \
+            --verify-tag
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}
 
     - name: Upload JAR to Release
       uses: actions/upload-release-asset@v1
