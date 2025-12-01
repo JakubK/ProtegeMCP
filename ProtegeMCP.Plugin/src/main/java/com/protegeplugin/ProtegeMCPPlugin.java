@@ -407,9 +407,9 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                         var irreflexive = !activeOntology.getIrreflexiveObjectPropertyAxioms(x).isEmpty();
 
                         return new ObjectPropertyWithCharacteristics(x, functional, inverseFunctional, transitive, symmetric, asymmetric, reflexive, irreflexive);
-                    }).toString();
+                    }).toArray();
 
-                    sendResponse(exchange, response);
+                    sendResponse(exchange, new Gson().toJson(response));
                 });
 
                 server.createContext("/rename-object-property", exchange -> {
@@ -477,27 +477,26 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
 
                     var changes = new ArrayList<OWLOntologyChange>();
 
-                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLFunctionalObjectPropertyAxiom(prop), functional);
-                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLInverseFunctionalObjectPropertyAxiom(prop), inverseFunctional);
-                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLTransitiveObjectPropertyAxiom(prop), transitive);
-                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLSymmetricObjectPropertyAxiom(prop), symmetric);
-                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLAsymmetricObjectPropertyAxiom(prop), asymmetric);
-                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLReflexiveObjectPropertyAxiom(prop), reflexive);
-                    changes = ProcessCharacteristicChange(changes, activeOntology, factory.getOWLIrreflexiveObjectPropertyAxiom(prop), irreflexive);
-
-                    var finalChanges = changes;
+                    ProcessCharacteristicChange(changes, activeOntology, factory.getOWLFunctionalObjectPropertyAxiom(prop), functional);
+                    ProcessCharacteristicChange(changes, activeOntology, factory.getOWLInverseFunctionalObjectPropertyAxiom(prop), inverseFunctional);
+                    ProcessCharacteristicChange(changes, activeOntology, factory.getOWLTransitiveObjectPropertyAxiom(prop), transitive);
+                    ProcessCharacteristicChange(changes, activeOntology, factory.getOWLSymmetricObjectPropertyAxiom(prop), symmetric);
+                    ProcessCharacteristicChange(changes, activeOntology, factory.getOWLAsymmetricObjectPropertyAxiom(prop), asymmetric);
+                    ProcessCharacteristicChange(changes, activeOntology, factory.getOWLReflexiveObjectPropertyAxiom(prop), reflexive);
+                    ProcessCharacteristicChange(changes, activeOntology, factory.getOWLIrreflexiveObjectPropertyAxiom(prop), irreflexive);
 
                     SwingUtilities.invokeLater(() -> {
-                        modelManager.applyChanges(finalChanges);
+                        modelManager.applyChanges(changes);
                         try {
                             sendResponse(exchange, "Success");
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
                     });
                 });
 
                 server.createContext("/list-object-property-axioms", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var df = modelManager.getOWLDataFactory();
 
@@ -511,6 +510,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/add-object-property-axiom", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var df = modelManager.getOWLDataFactory();
 
@@ -575,6 +575,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/delete-object-property-axiom", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var df = modelManager.getOWLDataFactory();
 
@@ -639,6 +640,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/create-individual", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var df = modelManager.getOWLDataFactory();
 
@@ -659,6 +661,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/delete-individual", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var df = modelManager.getOWLDataFactory();
 
@@ -679,6 +682,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/rename-individual", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var qparams = parseQueryParams(exchange);
 
                     var oldIRI = IRI.create(qparams.get("oldUri"));
@@ -703,11 +707,12 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/list-individuals", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
-
                     var individuals = new ArrayList<IndividualDetails>();
 
                     for (OWLNamedIndividual ind : ontology.getIndividualsInSignature()) {
+                        System.out.println("inc");
                         var types = new ArrayList<String>();
                         ontology.getClassAssertionAxioms(ind).forEach(ax -> types.add(ax.getClassExpression().toString()));
 
@@ -739,11 +744,11 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
 
                         individuals.add(new IndividualDetails(ind.getIRI().toString(), types, sameIndividuals, differentIndividuals, objectPropertyAssertions, negativeObjectPropertyAssertions));
                     }
-
                     sendResponse(exchange, new Gson().toJson(individuals));
                 });
 
                 server.createContext("/assign-type", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
 
@@ -767,6 +772,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/remove-assign-type", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
 
@@ -790,6 +796,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/assign-same-individual", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
 
@@ -813,6 +820,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/remove-assign-same-individual", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
 
@@ -836,6 +844,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/assign-different-individual", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
 
@@ -859,6 +868,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/remove-assign-different-individual", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
 
@@ -882,6 +892,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/assign-object-property-assertion", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
 
@@ -907,6 +918,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/remove-assign-object-property-assertion", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
 
@@ -932,6 +944,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/assign-negative-object-property-assertion", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
 
@@ -957,6 +970,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                 });
 
                 server.createContext("/remove-assign-negative-object-property-assertion", exchange -> {
+                    var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
 
@@ -1001,9 +1015,10 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
 
     private ArrayList<OWLOntologyChange> ProcessCharacteristicChange(ArrayList<OWLOntologyChange> changes, OWLOntology activeOntology, OWLAxiom ax, String value)
     {
-        if (value.equals("true"))
+        var boolValue = value.toLowerCase();
+        if (boolValue.equals("true"))
             changes.add(new AddAxiom(activeOntology, ax));
-        else if(value.equals("false"))
+        else if(boolValue.equals("false"))
             changes.add(new RemoveAxiom(activeOntology, ax));
 
         return changes;
