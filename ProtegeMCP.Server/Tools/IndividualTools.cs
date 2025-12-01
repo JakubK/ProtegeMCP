@@ -52,9 +52,9 @@ public class IndividualTools
             'newName': 'http://www.example.org/animals#JohnDoe'
         }
     ")]
-    public static async Task<string> RenameConcept(HttpClient client,
-        [Description("oldUri: URI of the Concept to be renamed. Example value: http://www.example.org/animals#John")] string oldUri,
-        [Description("newUri: New URI of Concept. Example value: http://www.example.org/animals#JohnDoe")] string newUri
+    public static async Task<string> RenameIndividual(HttpClient client,
+        [Description("oldUri: URI of the Individual to be renamed. Example value: http://www.example.org/animals#John")] string oldUri,
+        [Description("newUri: New URI of Individual. Example value: http://www.example.org/animals#JohnDoe")] string newUri
     )
     {
         var query = new Dictionary<string, string?>
