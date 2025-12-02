@@ -771,7 +771,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     });
                 });
 
-                server.createContext("/remove-assign-type", exchange -> {
+                server.createContext("/remove-type", exchange -> {
                     var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
@@ -819,7 +819,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     });
                 });
 
-                server.createContext("/remove-assign-same-individual", exchange -> {
+                server.createContext("/remove-same-individual", exchange -> {
                     var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
@@ -867,7 +867,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     });
                 });
 
-                server.createContext("/remove-assign-different-individual", exchange -> {
+                server.createContext("/remove-different-individual", exchange -> {
                     var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
@@ -917,7 +917,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     });
                 });
 
-                server.createContext("/remove-assign-object-property-assertion", exchange -> {
+                server.createContext("/remove-object-property-assertion", exchange -> {
                     var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();
@@ -969,7 +969,7 @@ public class ProtegeMCPPlugin extends ProtegeOWLAction {
                     });
                 });
 
-                server.createContext("/remove-assign-negative-object-property-assertion", exchange -> {
+                server.createContext("/remove-negative-object-property-assertion", exchange -> {
                     var modelManager = getOWLModelManager();
                     var ontology = modelManager.getActiveOntology();
                     var dataFactory = modelManager.getOWLDataFactory();

@@ -23,7 +23,7 @@ public class IndividualPropertiesTools
         return await response.Content.ReadAsStringAsync();
     }
     
-    [McpServerTool(Name = "remove-assign-type")]
+    [McpServerTool(Name = "remove-type")]
     [Description("Removes Type assigned to given Individual")]
     public static async Task<string> RemoveTypeAssign(HttpClient client,
         [Description("Uri of type")] string typeUri,
@@ -34,7 +34,7 @@ public class IndividualPropertiesTools
             ["typeUri"] = typeUri,
             ["individualUri"] = individualUri,
         };
-        var url = QueryHelpers.AddQueryString("/remove-assign-type", query);
+        var url = QueryHelpers.AddQueryString("/remove-type", query);
         var response = await client.DeleteAsync(url);
         return await response.Content.ReadAsStringAsync();
     }
@@ -55,7 +55,7 @@ public class IndividualPropertiesTools
         return await response.Content.ReadAsStringAsync();
     }
     
-    [McpServerTool(Name = "remove-assign-same-individual")]
+    [McpServerTool(Name = "remove-same-individual")]
     [Description("Removes Assignment of SameIndividual")]
     public static async Task<string> RemoveAssignSameIndividual(HttpClient client,
         [Description("Uri of individual")] string individualUri,
@@ -66,7 +66,7 @@ public class IndividualPropertiesTools
             ["individualUri"] = individualUri,
             ["sameIndividualUri"] = sameIndividualUri,
         };
-        var url = QueryHelpers.AddQueryString("/remove-assign-same-individual", query);
+        var url = QueryHelpers.AddQueryString("/remove-same-individual", query);
         var response = await client.DeleteAsync(url);
         return await response.Content.ReadAsStringAsync();
     }
@@ -87,7 +87,7 @@ public class IndividualPropertiesTools
         return await response.Content.ReadAsStringAsync();
     }
     
-    [McpServerTool(Name = "remove-assign-different-individual")]
+    [McpServerTool(Name = "remove-different-individual")]
     [Description("Removes Assignment of DifferentIndividual")]
     public static async Task<string> RemoveAssignDifferentIndividual(HttpClient client,
         [Description("Uri of individual")] string individualUri,
@@ -98,7 +98,7 @@ public class IndividualPropertiesTools
             ["individualUri"] = individualUri,
             ["differentIndividual"] = differentIndividual,
         };
-        var url = QueryHelpers.AddQueryString("/remove-assign-different-individual", query);
+        var url = QueryHelpers.AddQueryString("/remove-different-individual", query);
         var response = await client.DeleteAsync(url);
         return await response.Content.ReadAsStringAsync();
     }
@@ -121,7 +121,7 @@ public class IndividualPropertiesTools
         return await response.Content.ReadAsStringAsync();
     }
     
-    [McpServerTool(Name = "remove-assign-object-property-assertion")]
+    [McpServerTool(Name = "remove-object-property-assertion")]
     [Description("Removes assignment of Object Property Assertion from given Individual")]
     public static async Task<string> RemoveAssignObjectPropertyAssertion(HttpClient client,
         [Description("Uri of individual")] string individualUri,
@@ -134,7 +134,7 @@ public class IndividualPropertiesTools
             ["objectPropertyUri"] = objectPropertyUri,
             ["secondIndividualUri"] = secondIndividualUri
         };
-        var url = QueryHelpers.AddQueryString("/remove-assign-object-property-assertion", query);
+        var url = QueryHelpers.AddQueryString("/remove-object-property-assertion", query);
         var response = await client.PostAsync(url, null);
         return await response.Content.ReadAsStringAsync();
     }
@@ -157,7 +157,7 @@ public class IndividualPropertiesTools
         return await response.Content.ReadAsStringAsync();
     }
     
-    [McpServerTool(Name = "remove-assign-negative-object-property-assertion")]
+    [McpServerTool(Name = "remove-negative-object-property-assertion")]
     [Description("Removes assignment of Negative Object Property Assertion from given Individual")]
     public static async Task<string> RemoveAssignNegativeObjectPropertyAssertion(HttpClient client,
         [Description("Uri of individual")] string individualUri,
@@ -170,7 +170,7 @@ public class IndividualPropertiesTools
             ["objectPropertyUri"] = objectPropertyUri,
             ["secondIndividualUri"] = secondIndividualUri
         };
-        var url = QueryHelpers.AddQueryString("/remove-assign-negative-object-property-assertion", query);
+        var url = QueryHelpers.AddQueryString("/remove-negative-object-property-assertion", query);
         var response = await client.PostAsync(url, null);
         return await response.Content.ReadAsStringAsync();
     }

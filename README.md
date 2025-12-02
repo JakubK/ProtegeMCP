@@ -29,7 +29,7 @@ All MCP Server capabilities are exposed as Tools.
 
 - `list-concept-axioms` - List all axioms organized by category for given Concept in current Ontology
 - `add-concept-axiom` - Assign Axiom to concept (equivalentClass, subClass, disjointClass, disjointUnionClass)
-- `rename-concept` - Removes assigned Axiom from concept (equivalentClass, subClass, disjointClass, disjointUnionClass)
+- `remove-concept-axiom` - Removes assigned Axiom from concept (equivalentClass, subClass, disjointClass, disjointUnionClass)
 
 ### Object Properties - 5 tools
 
@@ -56,15 +56,15 @@ All MCP Server capabilities are exposed as Tools.
 ### Individual Properties - 10 tools
 
 - `assign-type` - Assign type (concept) to given individual
-- `remove-assign-type` - Remove type assignment
+- `remove-type` - Remove type assignment
 - `assign-same-individual` - Denote that 2 individuals are actually the same
-- `remove-assign-same-individual` - Remove same individual assignment
+- `remove-same-individual` - Remove same individual assignment
 - `assign-different-individual` - Denote that 2 individuals are separate ones
-- `remove-assign-different-individual` - Remove different individuals assignment
+- `remove-different-individual` - Remove different individuals assignment
 - `assign-object-property-assertion` - Add Object Property assertion to individual
-- `remove-assign-object-property-assertion` - Remove Object Property assertion
+- `remove-object-property-assertion` - Remove Object Property assertion
 - `assign-negative-object-property-assertion` - Add Negative Object Property Assertion
-- `remove-assign-negative-object-property-assertion` - Remove Negative Object Property Assertion
+- `remove-negative-object-property-assertion` - Remove Negative Object Property Assertion
 
 ### IO - 4 tools
 
